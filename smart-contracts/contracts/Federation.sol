@@ -16,10 +16,10 @@ contract Federation {
     // Define the Service struct
     struct Service {
         address creator;
-        bytes endpoint_consumer; // Changed from bytes32 to bytes
+        bytes endpoint_consumer; 
         bytes32 id;
         address provider;
-        bytes endpoint_provider; // Changed from bytes32 to bytes
+        bytes endpoint_provider; 
         bytes req_info;
         ServiceState state;
     }
@@ -28,7 +28,7 @@ contract Federation {
     struct Bid {
         address bid_address;
         uint price;
-        bytes endpoint_provider; // Changed from bytes32 to bytes
+        bytes endpoint_provider;
     }
     
     // Define mappings to store data

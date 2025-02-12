@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Path to the node1 environment file
-NODE_ENV_FILE="../config/dlt/node1.env"
+NODE_ENV_FILE="../config/dlt-local/node1.env"
+# NODE_ENV_FILE="../config/dlt/node1.env"
 
 # Function to load environment variables from node1.env
 load_env_vars() {
@@ -25,7 +26,6 @@ docker run \
   -it \
   --rm \
   --name truffle \
-  --hostname truffle \
   --network host \
   -v "$(pwd)/.":/smart-contracts \
   -e NODE_IP="$NODE_IP" \

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the paths to be cleaned
-LOCAL_ENV_DIR="./local-env"
+LOCAL_ENV_DIR="../config/dlt-local"
 DOCKER_COMPOSE_FILE="docker-compose.yml"
 
 # Check and remove the local environment directory

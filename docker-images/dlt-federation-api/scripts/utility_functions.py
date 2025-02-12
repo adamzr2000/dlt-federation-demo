@@ -8,25 +8,38 @@ import ipaddress
 # Get the logger defined in main.py
 logger = logging.getLogger(__name__)
 
-def extract_service_requirements(requirements):
+def extract_service_requirements(formatted_requirements: str) -> dict:
     """
-    Extracts service and replicas from the requirements string.
+    Extracts service requirements from a formatted string into a dictionary.
 
     Args:
-        requirements (str): String containing service and replicas in the format "service=A;replicas=B".
+        formatted_requirements (str): A string containing service requirements formatted as 'key=value; ...'.
 
     Returns:
-        tuple: A tuple containing extracted service and replicas.
+        dict: A dictionary with extracted key names and their corresponding values.
     """
-    match = re.match(r'service=(.*?);replicas=(.*)', requirements)
+    requirements_dict = {}
+    
+    # Split the string by ';' and process each key-value pair
+    for entry in formatted_requirements.split(";"):
+        entry = entry.strip()
+        if "=" in entry:  # Ensure valid key-value pairs
+            key, value = entry.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+            
+            # Convert numeric values from string to appropriate type
+            if value.isdigit():
+                value = int(value)
+            elif value.replace(".", "", 1).isdigit():  # Handle float values
+                value = float(value)
+            elif value.lower() == "none":  # Convert 'None' string to Python None
+                value = None
+            
+            requirements_dict[key] = value
+    
+    return requirements_dict
 
-    if match:
-        requested_service = match.group(1)
-        replicas = match.group(2)
-        return requested_service, replicas
-    else:
-        logger.error(f"Invalid requirements format: {requirements}")
-        return None, None
 
 def extract_service_endpoint(endpoint):
     """
@@ -138,16 +151,6 @@ def get_ip_range_from_subnet(subnet: str) -> str:
     
     except ValueError as e:
         return f"Invalid subnet: {e}"
-
-def validate_requirements(requirements: str) -> bool:
-    """
-    Validates the 'requirements' string.
-    Expected format: 'service=<docker_image>;replicas=<container_replicas>'
-    """
-    pattern = r'^service=[\w\.-]+;replicas=\d+$'
-    if re.match(pattern, requirements):
-        return True
-    return False
 
 def validate_endpoint(endpoint: str) -> bool:
     """

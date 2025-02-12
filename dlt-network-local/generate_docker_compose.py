@@ -39,8 +39,8 @@ def generate_docker_compose(num_nodes):
         "container_name": "grafana",
         "ports": ["3000:3000"],
         "volumes": [
-            "./../grafana/datasources:/etc/grafana/provisioning/datasources",
-            "./../grafana/dashboards:/etc/grafana/provisioning/dashboards"
+            "./grafana/datasources:/etc/grafana/provisioning/datasources",
+            "./grafana/dashboards:/etc/grafana/provisioning/dashboards"
         ],
         "environment": {
             "GF_SECURITY_ADMIN_USER": "desire6g",
@@ -58,7 +58,7 @@ def generate_docker_compose(num_nodes):
         "image": "dlt-node",
         "container_name": "bootnode",
         "hostname": "bootnode",
-        "volumes": ["./local-env/bootnode.env:/dlt-network/.env"],
+        "volumes": ["../config/dlt-local/bootnode.env:/dlt-network/.env"],
         "command": "./bootnode_start.sh",
         "networks": {
             "dlt_network": {"ipv4_address": "172.18.0.4"}
@@ -75,8 +75,8 @@ def generate_docker_compose(num_nodes):
                 "hostname": f"node{i}",
                 "depends_on": ["bootnode"],
                 "volumes": [
-                    f"./local-env/node{i}.env:/dlt-network/.env",
-                    f"./../../config/dlt/genesis/genesis_{num_nodes}_validators.json:/dlt-network/genesis.json"
+                    f"../config/dlt-local/node{i}.env:/dlt-network/.env",
+                    f"../config/dlt/genesis/genesis_{num_nodes}_validators.json:/dlt-network/genesis.json"
                 ],
                 "command": "./node_start.sh",
                 "networks": {
