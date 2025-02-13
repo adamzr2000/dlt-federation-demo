@@ -62,12 +62,12 @@ Use the following commands to confirm both nodes are connected:
 ./get_peer_nodes.sh --node node2
 
 # AD3  
-./get_peer_nodes.sh --node node2
+./get_peer_nodes.sh --node node3
 ```
 
 Each command should show `2 peers`.
 
-Access the `grafana` dashboard for additional information at [http://localhost:3000](http://localhost:3000)
+Access the `grafana` dashboard for additional information at [http://10.5.15.55:3000](http://10.5.15.55:3000)
 
 > Note: The username is `desire6g` and the password `desire6g2024;`
 
@@ -105,26 +105,32 @@ For more details on federation functions, refer to the FastAPI documentation at 
 3. Register each AD in the Federation SC:
 
 ```bash 
+# AD1
 curl -X POST 'http://localhost:8080/register_domain' \
 -H 'Content-Type: application/json' \
 -d '{
-   "name": "<domain_name>"
+   "name": "Domain-1"
+}'
+
+# AD2
+curl -X POST 'http://localhost:8080/register_domain' \
+-H 'Content-Type: application/json' \
+-d '{
+   "name": "Domain-2"
 }'
 ```
 
 3. Start listening for federation events on the provider ADs:
 
-> Note: This simulates the provider-side service federation process, including bid placement, 
-waiting for selection, and service deployment.
+> Note: This simulates the provider-side service federation process, including bid placement, waiting for selection, and service deployment.
 
+### TO MODIFY
 ```bash
 curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
-   "vim": "<docker/kubernetes>", 
-   "export_to_csv": <true/false>, 
-   "service_price": <federation_price_offering (e.g., 10)>,
-   "endpoint_provider": "ip_address=10.5.99.2;vxlan_id=200;vxlan_port=4789;federation_net=10.0.0.0/16"
+   "export_to_csv": false, 
+   "service_price": 20,
 }'
 ```
 
@@ -132,15 +138,13 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 
 > Note: This simulates the consumer-side service federation process, including service announcement, bid evaluation, and provider selection.
 
+### TO MODIFY
 ```bash
 curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
-   "vim": "<docker/kubernetes>", 
-   "export_to_csv": <true/false>, 
-   "service_providers": <federation_offers_to_wait (e.g., 1)>,
-   "requirements": "service=alpine;replicas=1", 
-   "endpoint_consumer": "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;federation_net=10.0.0.0/16"
+   "export_to_csv": false, 
+   
 }'
 ```
 
@@ -216,7 +220,7 @@ curl -X POST 'http://localhost:8080/place_bid' \
 -H 'Content-Type: application/json' \
 -d '{
    "service_id": "<id>", 
-   "service_price": <federation_price_offering (e.g., 10)>
+   "service_price": 5
 }' | jq
 ```
 
@@ -234,7 +238,7 @@ Returns the `tx_hash`; otherwise returns an error message.
 curl -X POST 'http://localhost:8080/choose_provider' \
 -H 'Content-Type: application/json' \
 -d '{
-   "bid_index": <index>, 
+   "bid_index": 0, 
    "service_id": "<id>"
 }' | jq
 ``` 
@@ -247,10 +251,10 @@ curl -X POST 'http://localhost:8080/send_endpoint_info' \
 -H 'Content-Type: application/json' \
 -d '{
    "service_id": "<id>", 
-   "service_catalog_db": "<service_catalog_url>",
-   "topology_db": "<topology_url>",
-   "nsd_id": "<nsd_id>",
-   "ns_id": "<ns_id>"
+   "service_catalog_db": "http://10.5.15.55:5000/catalog",
+   "topology_db": "http://10.5.15.55:5000/topology",
+   "nsd_id": "ros-app.yaml",
+   "ns_id": "ros-service-consumer"
 }' | jq
 ``` 
 
@@ -276,8 +280,8 @@ curl -X POST 'http://localhost:8080/send_endpoint_info' \
 -H 'Content-Type: application/json' \
 -d '{
    "service_id": "<id>", 
-   "topology_db": "<topology_url>",
-   "ns_id": "<ns_id>"
+   "topology_db": "http://10.5.15.56:5000/topology",
+   "ns_id": "ros-service-provider"
 }' | jq
 ``` 
 
@@ -289,7 +293,7 @@ curl -X POST 'http://localhost:8080/service_deployed' \
 -H 'Content-Type: application/json' \
 -d '{
    "service_id": "<id>",
-   "federated_host": "<federated_host_ip>"
+   "federated_host": "10.0.0.10"
 }' | jq
 ```
 

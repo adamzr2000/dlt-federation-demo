@@ -141,10 +141,8 @@ contract Federation {
         Operator storage current_operator = operator[call_address];
         Endpoint storage current_endpoint = endpoints[endpoint_id];
         require(current_operator.registered == true, "Operator is not registered. Can not look into. Please register.");
-        require(current_endpoint.name != "", "Endpoint not exists");
-        return(current_service.id, current_service.req_info,
-                   current_endpoint.service_catalog_db, current_endpoint.topology_db,
-                   current_endpoint.nsd_id, current_endpoint.ns_id);
+        return(current_endpoint.service_catalog_db, current_endpoint.topology_db,
+               current_endpoint.nsd_id, current_endpoint.ns_id);
     }
 
     function PlaceBid(bytes32 _id, uint32 _price,
@@ -156,7 +154,7 @@ contract Federation {
         require(current_service.state == ServiceState.Open, "Service is closed or not exists");
         bytes32 endpoint_keccak = keccak256(abi.encodePacked(endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id));
         endpoints[endpoint_keccak] = Endpoint(endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id);
-        uint256 max_bid_index = bids[_id].push(Bid(msg.sender, _price, _endpoint));
+        uint256 max_bid_index = bids[_id].push(Bid(msg.sender, _price, endpoint_keccak));
         bidCount[_id] = max_bid_index;
         emit NewBid(_id, max_bid_index);
         return max_bid_index;

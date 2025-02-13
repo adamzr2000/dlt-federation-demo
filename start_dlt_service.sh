@@ -46,7 +46,7 @@ docker run \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/kubernetes_functions.py":/app/kubernetes_functions.py \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/utility_functions.py":/app/utility_functions.py \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/main.py":/app/main.py \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/start_app.sh":/app/start_app.sh \
+    -v "$(pwd)/docker-images/dlt-federation-api/scripts/run_server.sh":/app/run_server.sh \
     -e FEDERATION_ENV_FILE="$env_file" \
     dlt-federation-api:latest \
     $START_CMD

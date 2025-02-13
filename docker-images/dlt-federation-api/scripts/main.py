@@ -61,7 +61,8 @@ for env_file in env_files:
 try:
     domain = os.getenv('DOMAIN_FUNCTION', '').strip().lower()
     dlt_node_id = os.getenv('DLT_NODE_ID')
-    eth_node_url = os.getenv('WS_URL')
+    # eth_node_url = os.getenv('WS_URL')
+    eth_node_url = os.getenv('ETH_NODE_URL')
     ip_address = os.getenv('NODE_IP')
 
     # logger.info(f"DOMAIN_FUNCTION: {domain}")
@@ -725,7 +726,7 @@ def place_bid_endpoint(request: PlaceBidRequest):
     """ 
     global block_address
     try:
-        tx_hash = PlaceBid(request.service_id, request.service_price, request.endpoint_provider, block_address) # modify
+        tx_hash = PlaceBid(request.service_id, request.service_price, block_address, "None", "None", "None", "None")
         return JSONResponse(content={"tx_hash": tx_hash})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -819,8 +820,8 @@ def send_endpoint_info(request: UpdateEndpointRequest):
         nsd_id = request.nsd_id if request.nsd_id is not None else "None"
 
         tx_hash = UpdateEndpoint(request.service_id, domain, block_address,
-                                 service_catalog_db, request.endpoint_topology_db,
-                                 nsd_id, request.endpoint_ns_id)
+                                 service_catalog_db, request.topology_db,
+                                 nsd_id, request.ns_id)
         return JSONResponse(content={"tx_hash": tx_hash})    
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
