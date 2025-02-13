@@ -98,11 +98,6 @@ except Exception as e:
 # Initialize global variables
 service_id = ''
 domain_registered = False
-vxlan_id = '200'
-vxlan_port = '4789'
-federation_net = '10.0.0.0/16'
-service_endpoint_consumer = f'ip_address={ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};federation_net={federation_net}'
-service_endpoint_provider = f'ip_address={ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};federation_net={federation_net}'
 
 # Pydantic Models
 class TransactionReceiptResponse(BaseModel):
@@ -127,6 +122,13 @@ class ServiceAnnouncementRequest(BaseModel):
     rtt_latency_ms: Optional[int] = None 
     compute_cpus: Optional[int] = None 
     compute_ram_gb: Optional[int] = None 
+    
+class UpdateEndpointRequest(BaseModel):
+    service_id: str
+    topology_db: str
+    ns_id: str 
+    service_catalog_db: Optional[str] = None
+    nsd_id: Optional[str] = None
 
 class PlaceBidRequest(BaseModel):
     service_id: str
@@ -140,20 +142,20 @@ class ServiceDeployedRequest(BaseModel):
     service_id: str
     federated_host: str
 
-class ConsumerFederationProcessRequest(BaseModel):
-    export_to_csv: Optional[bool] = False
-    service_providers: Optional[int] = 1
-    endpoint_consumer: Optional[str] = service_endpoint_consumer
-    service_type: Optional[str] = "K8s App Deployment"
-    bandwidth_gbps: Optional[int] = None 
-    rtt_latency_ms: Optional[int] = None 
-    compute_cpus: Optional[int] = None 
-    compute_ram_gb: Optional[int] = None 
+# class ConsumerFederationProcessRequest(BaseModel):
+#     export_to_csv: Optional[bool] = False
+#     service_providers: Optional[int] = 1
+#     endpoint_consumer: Optional[str] = None
+#     service_type: Optional[str] = "K8s App Deployment"
+#     bandwidth_gbps: Optional[int] = None 
+#     rtt_latency_ms: Optional[int] = None 
+#     compute_cpus: Optional[int] = None 
+#     compute_ram_gb: Optional[int] = None 
 
-class ProviderFederationProcessRequest(BaseModel):
-    service_price: int
-    export_to_csv: Optional[bool] = False
-    endpoint_provider: Optional[str] = service_endpoint_provider
+# class ProviderFederationProcessRequest(BaseModel):
+#     service_price: int
+#     export_to_csv: Optional[bool] = False
+#     endpoint_provider: Optional[str] = None
 
 # Function to format service requirements in key=value; format with all fields included
 def format_service_requirements(request: ServiceAnnouncementRequest) -> str:
@@ -269,6 +271,29 @@ def AnnounceService(blockchain_address: str, service_requirements: str,
         logger.error(f"Failed to announce service: {str(e)}")
         raise Exception("Service announcement failed.")
 
+def UpdateEndpoint(service_id: str, domain: str, blockchain_address: str, 
+                   endpoint_service_catalog_db: str, endpoint_topology_db:str,
+                   endpoint_nsd_id: str, endpoint_ns_id:str) -> str:
+    global nonce, Federation_contract
+    try:
+        provider_flag = (domain == "provider")
+        update_endpoint_transaction = Federation_contract.functions.UpdateEndpoint(
+            provider=provider_flag, 
+            _id=web3.toBytes(text=service_id),
+            endpoint_service_catalog_db=web3.toBytes(text=endpoint_service_catalog_db),
+            endpoint_topology_db=web3.toBytes(text=endpoint_topology_db),
+            endpoint_nsd_id=web3.toBytes(text=endpoint_nsd_id),
+            endpoint_ns_id=web3.toBytes(text=endpoint_ns_id)
+        ).buildTransaction({
+            'from': blockchain_address,
+            'nonce': nonce
+        })
+        tx_hash = send_signed_transaction(update_endpoint_transaction)
+        return tx_hash
+    except Exception as e:
+        logger.error(f"Failed to update endpoint: {str(e)}")
+        raise Exception("Service update failed.")
+
 def GetBidInfo(service_id: str, bid_index: int, blockchain_address: str) -> tuple:
     global Federation_contract
     try:
@@ -307,30 +332,38 @@ def GetServiceState(service_id: str) -> int:
         logger.error(f"Failed to retrieve service state for service_id {service_id}: {str(e)}")
         raise Exception(f"Error occurred while retrieving the service state for service_id {service_id}.")
 
-def GetDeployedInfo(service_id: str, domain: str, blockchain_address: str) -> tuple:
+def GetServiceInfo(service_id: str, domain: str, blockchain_address: str) -> tuple:
     global Federation_contract
     try:
         service_id_bytes = web3.toBytes(text=service_id)
         provider_flag = (domain == "provider")
         
-        service_id, service_endpoint, federated_host = Federation_contract.functions.GetServiceInfo(
+        service_id, federated_host, endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id = Federation_contract.functions.GetServiceInfo(
             _id=service_id_bytes, provider=provider_flag, call_address=blockchain_address).call()
 
         return (
-            federated_host.rstrip(b'\x00').decode('utf-8') if not provider_flag else "",
-            service_endpoint.rstrip(b'\x00').decode('utf-8')
+            federated_host.rstrip(b'\x00').decode('utf-8'),
+            endpoint_service_catalog_db.rstrip(b'\x00').decode('utf-8'),
+            endpoint_topology_db.rstrip(b'\x00').decode('utf-8'),
+            endpoint_nsd_id.rstrip(b'\x00').decode('utf-8'),
+            endpoint_ns_id.rstrip(b'\x00').decode('utf-8')
         )
     except Exception as e:
         logger.error(f"Failed to retrieve deployed info for service_id {service_id} and domain {domain}: {str(e)}")
         raise Exception(f"Error occurred while retrieving deployed info for service_id {service_id} and domain {domain}.")
 
-def PlaceBid(service_id: str, service_price: int, service_endpoint: str, blockchain_address: str) -> str:
+def PlaceBid(service_id: str, service_price: int, blockchain_address: str,
+            endpoint_service_catalog_db: str, endpoint_topology_db:str,
+            endpoint_nsd_id: str, endpoint_ns_id:str) -> str:
     global nonce, Federation_contract
     try:
         place_bid_transaction = Federation_contract.functions.PlaceBid(
             _id=web3.toBytes(text=service_id),
             _price=service_price,
-            _endpoint=web3.toBytes(text=service_endpoint)
+            endpoint_service_catalog_db=web3.toBytes(text=endpoint_service_catalog_db),
+            endpoint_topology_db=web3.toBytes(text=endpoint_topology_db),
+            endpoint_nsd_id=web3.toBytes(text=endpoint_nsd_id),
+            endpoint_ns_id=web3.toBytes(text=endpoint_ns_id)
         ).buildTransaction({
             'from': blockchain_address,
             'nonce': nonce
@@ -523,10 +556,9 @@ def create_service_announcement_endpoint(request: ServiceAnnouncementRequest):
 
     Args:
         request (ServiceAnnouncementRequest): A Pydantic model containing the following fields:
-            - endpoint_consumer (str): The consumer's identifier requesting the service. [change]
             - service_type (str, optional): The type of the service (default: "K8s App Deployment").
             - bandwidth_gbps (float, optional): The required bandwidth in Gbps (default: None).
-            - rtt_latency_ms (int, optional): The required round-trip latency in milliseconds (default: None).
+            - rtt_latency_ms (int, optional): The required round-trip latency in ms (default: None).
             - compute_cpus (int, optional): The required number of CPUs for the service (default: None).
             - compute_ram_gb (int, optional): The required amount of RAM in GB (default: None).
 
@@ -542,12 +574,12 @@ def create_service_announcement_endpoint(request: ServiceAnnouncementRequest):
     global service_id, block_address
     try:
         formatted_requirements = format_service_requirements(request)
-        tx_hash = AnnounceService(block_address, formatted_requirements, request.endpoint_consumer)
+        tx_hash = AnnounceService(block_address, formatted_requirements, "None", "None", "None", "None") 
         return JSONResponse(content={"tx_hash": tx_hash, "service_id": service_id})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/check_service_state", summary="Get service state", tags=["Default DLT federation functions"])
+@app.get("/service_state", summary="Get service state", tags=["Default DLT federation functions"])
 async def check_service_state_endpoint(service_id: str = Query(..., description="The service ID to check the state of")):
     """
     Returns the current state of a service by its service ID.
@@ -575,7 +607,7 @@ async def check_service_state_endpoint(service_id: str = Query(..., description=
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/check_deployed_info", summary="Get deployed info", tags=["Default DLT federation functions"])
+@app.get("/service_info", summary="Get service info", tags=["Default DLT federation functions"])
 async def check_deployed_info_endpoint(service_id: str = Query(..., description="The service ID to get the deployed info for the federated service")):
     """
     Retrieves deployment information for a federated service.
@@ -586,20 +618,46 @@ async def check_deployed_info_endpoint(service_id: str = Query(..., description=
     Returns:
         JSONResponse: A JSON object containing:
             - federated_host (str): The external IP address of the deployed service.
-            - service_endpoint (str): The service endpoint where the consumer can access the deployed service.
-
+            - endpoint_provider or endpoint_consumer (dict): Contains:
+                - service_catalog_db (str)
+                - topology_db (str)
+                - nsd_id (str)
+                - ns_id (str)
     Raises:
         HTTPException:
             - 500: If there is an error retrieving the deployment information.
     """   
     global domain, block_address
     try:
-        federated_host, service_endpoint = GetDeployedInfo(service_id, domain, block_address)  
-        return JSONResponse(content={"service_endpoint": service_endpoint, "federated_host": federated_host})
+        federated_host, service_catalog_db, topology_db, nsd_id, ns_id = GetServiceInfo(service_id, domain, block_address)
+        
+        response_data = {}
+        
+        if domain == "provider":
+            response_data = {
+                "federated_host": federated_host,
+                "endpoint_provider": {
+                    "service_catalog_db": service_catalog_db,
+                    "topology_db": topology_db,
+                    "nsd_id": nsd_id,
+                    "ns_id": ns_id
+                }
+            }
+        else:
+            response_data = {
+                "federated_host": federated_host,
+                "endpoint_consumer": {
+                    "service_catalog_db": service_catalog_db,
+                    "topology_db": topology_db,
+                    "nsd_id": nsd_id,
+                    "ns_id": ns_id
+                }
+            }      
+        return JSONResponse(content=response_data)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/check_service_announcements", summary="Check service federation announcements", tags=["Provider DLT federation functions"])
+@app.get("/service_announcements", summary="Check service federation announcements", tags=["Provider DLT federation functions"])
 async def check_service_announcements_endpoint():
     """
     Check for new service announcements in the last 20 blocks.
@@ -655,8 +713,6 @@ def place_bid_endpoint(request: PlaceBidRequest):
         request (PlaceBidRequest): A Pydantic model containing the following fields:
             - service_id (str): The unique identifier of the service being bid on.
             - service_price (int): The price the provider is offering for the service.
-            - endpoint_provider (str): The provider's VXLAN endpoint, in the format:
-                'ip_address=<ip_address>;vxlan_id=<vxlan_id>;vxlan_port=<vxlan_port>;federation_net=<federation_net>'.
 
     Returns:
         JSONResponse: A JSON object containing:
@@ -668,18 +724,13 @@ def place_bid_endpoint(request: PlaceBidRequest):
             - 500: If there is an internal server error during bid submission.
     """ 
     global block_address
-
-    # Validate endpoint format
-    if request.endpoint_provider and not utils.validate_endpoint(request.endpoint_provider):
-        raise HTTPException(status_code=400, detail="Invalid 'endpoint' format. Expected format: 'ip_address=<ip_address>;vxlan_id=<vxlan_id>;vxlan_port=<vxlan_port>;federation_net=<federation_net>'")
-
     try:
-        tx_hash = PlaceBid(request.service_id, request.service_price, request.endpoint_provider, block_address)
+        tx_hash = PlaceBid(request.service_id, request.service_price, request.endpoint_provider, block_address) # modify
         return JSONResponse(content={"tx_hash": tx_hash})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/check_bids", summary="Check bids", tags=["Consumer DLT federation functions"]) 
+@app.get("/bids", summary="Check bids", tags=["Consumer DLT federation functions"]) 
 async def check_bids_endpoint(service_id: str = Query(..., description="The service ID to check bids for")):
     """
     Check for bids placed on a specific service.
@@ -742,8 +793,40 @@ def choose_provider_endpoint(request: ChooseProviderRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/send_endpoint_info", summary="Send endpoint information for federated service deployment", tags=["Default DLT federation functions"])
+def send_endpoint_info(request: UpdateEndpointRequest):
+    """
+    
+    Args:
+        request (UpdateEndpointRequest): A Pydantic model containing the following fields:
+            - service_id (str): The unique identifier of the service.
+            - topology_db (str): URL or endpoint of the topology database.
+            - ns_id (str): Network Service ID.
+            - service_catalog_db (str, optional): URL or endpoint of the service catalog database (default: None).
+            - nsd_id (str, optional): Network Service Descriptor ID (default: None).
+
+    Returns:
+        JSONResponse: A JSON object containing:
+            - tx_hash (str): The transaction hash of the sent transaction for choosing the provider.
+
+    Raises:
+        HTTPException: 
+            - 500: If there is an internal server error during the process of sending the endpoint information.
+    """    
+    global block_address
+    try:            
+        service_catalog_db = request.service_catalog_db if request.service_catalog_db is not None else "None"
+        nsd_id = request.nsd_id if request.nsd_id is not None else "None"
+
+        tx_hash = UpdateEndpoint(request.service_id, domain, block_address,
+                                 service_catalog_db, request.endpoint_topology_db,
+                                 nsd_id, request.endpoint_ns_id)
+        return JSONResponse(content={"tx_hash": tx_hash})    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.get("/winner_status", summary="Check if a winner has been chosen", tags=["Provider DLT federation functions"])
-async def winner_status(service_id: str = Query(..., description="The service ID to check if there is a winner provider in the federation")):
+async def check_winner_status_endpoint(service_id: str = Query(..., description="The service ID to check if there is a winner provider in the federation")):
     """
     Check if a winner has been chosen for a specific service in the federation.
 
@@ -875,7 +958,7 @@ def service_deployed_endpoint(request: ServiceDeployedRequest):
 # # #             # Send service announcement (federation request)
 # # #             t_service_announced = time.time() - process_start_time
 # # #             data.append(['service_announced', t_service_announced])
-# # #             tx_hash = AnnounceService(block_address, request.requirements, request.endpoint_consumer)
+# # #             tx_hash = AnnounceService(block_address, request.requirements, request.endpoint_consumer) # mdodify
 # # #             logger.info(f"Service Announcement sent to the SC - Service ID: {service_id}")
 
 # # #             # Wait for provider bids
@@ -928,7 +1011,7 @@ def service_deployed_endpoint(request: ServiceDeployedRequest):
 # # #             data.append(['confirm_deployment_received', t_confirm_deployment_received])
 
 # # #             # Federated service info
-# # #             federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain, block_address)
+# # #             federated_host, service_endpoint_provider = GetServiceInfo(service_id, domain, block_address)
 # # #             provider_endpoint_ip, provider_endpoint_vxlan_id, provider_endpoint_vxlan_port, provider_endpoint_federation_net = utils.extract_service_endpoint(service_endpoint_provider)
 # # #             logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
             
@@ -1073,7 +1156,7 @@ def service_deployed_endpoint(request: ServiceDeployedRequest):
 # # #                         return JSONResponse(content={"message": f"Other provider chosen for {service_id}"})
 
 # # #             # Retrieve consumer service endpoint
-# # #             federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain, block_address)
+# # #             federated_host, service_endpoint_consumer = GetServiceInfo(service_id, domain, block_address)
 # # #             consumer_endpoint_ip, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net = utils.extract_service_endpoint(service_endpoint_consumer)
 # # #             provider_docker_ip_range = utils.create_smaller_subnet(consumer_endpoint_federation_net, dlt_node_id)
 # # #             provider_kubernetes_ip_range = utils.get_ip_range_from_subnet(provider_docker_ip_range)

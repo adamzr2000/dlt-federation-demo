@@ -90,23 +90,23 @@ contract Federation {
         return ServiceState.Open;
     }
 
-    function UpdateEndpoint(address call_address, bool provider, bytes32 _id,
+    function UpdateEndpoint(bool provider, bytes32 _id,
                             bytes32 endpoint_service_catalog_db, bytes32 endpoint_topology_db,
                             bytes32 endpoint_nsd_id, bytes32 endpoint_ns_id) public returns (bool) {
-        Operator storage current_operator = operator[call_address];
+        Operator storage current_operator = operator[msg.sender];
         Service storage current_service = service[_id];
         bytes32 endpoint_keccak = keccak256(abi.encodePacked(endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id));
         require(current_operator.registered == true, "Operator is not registered. Can not look into. Please register.");
         require(current_service.state >= ServiceState.Open, "Service is closed or not exists");
         if(provider == true) {
                 require(current_service.state >= ServiceState.Closed, "Service is still open or not exists");
-                require(current_service.provider == call_address, "This domain is not a winner");
+                require(current_service.provider == msg.sender, "This domain is not a winner");
                 endpoints[endpoint_keccak] = Endpoint(endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id);
                 service[_id].endpoint_provider = endpoint_keccak;
                 return true;
         }
         else {
-                require(current_service.creator == call_address, "This domain is not a creator");
+                require(current_service.creator == msg.sender, "This domain is not a creator");
                 endpoints[endpoint_keccak] = Endpoint(endpoint_service_catalog_db, endpoint_topology_db, endpoint_nsd_id, endpoint_ns_id);
                 service[_id].endpoint_consumer = endpoint_keccak;
                 return true;
