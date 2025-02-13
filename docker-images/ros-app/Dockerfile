@@ -45,3 +45,5 @@ RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
 
 # Indicate completion of Dockerfile setup
 RUN echo "ALL Done"
+
+CMD "./entrypoint.sh"

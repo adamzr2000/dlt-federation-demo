@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ros-subscriber
+spec:
+  containers:
+    - name: ros-subscriber
+      image: ros-app
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: ROS_MASTER_URI
+          value: "http://10.5.15.55:11311" 
+        - name: ROS_IP
+          value: "10.5.15.55"
+        - name: ROS_ROLE
+          value: "subscriber"          
+        - name: ROS_TOPIC
+          value: "chatter"
+  hostNetwork: true

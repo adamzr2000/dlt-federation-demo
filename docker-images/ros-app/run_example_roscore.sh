@@ -38,5 +38,5 @@ docker run \
     --net host \
     -e ROS_MASTER_URI="$ros_master_uri" \
     -e ROS_IP="$ros_ip" \
-    ros-app:latest \
-    roscore
+    -e ROS_ROLE="roscore" \
+    ros-app:latest

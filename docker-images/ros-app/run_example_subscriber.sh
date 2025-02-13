@@ -44,5 +44,6 @@ docker run \
     --net host \
     -e ROS_MASTER_URI="$ros_master_uri" \
     -e ROS_IP="$ros_ip" \
-    ros-app:latest \
-    python3 -u dummy_subscriber.py --topic "$topic"
+    -e ROS_ROLE="subscriber" \
+    -e ROS_TOPIC="$topic" \
+    ros-app:latest 

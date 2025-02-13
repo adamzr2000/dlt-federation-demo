@@ -56,5 +56,8 @@ docker run \
     --net host \
     -e ROS_MASTER_URI="$ros_master_uri" \
     -e ROS_IP="$ros_ip" \
-    ros-app:latest \
-    python3 -u dummy_publisher.py --topic "$topic" --rate "$rate" --message "$message"
+    -e ROS_ROLE="publisher" \
+    -e ROS_TOPIC="$topic" \
+    -e ROS_RATE="$rate" \
+    -e ROS_MESSAGE="$message" \
+    ros-app:latest
