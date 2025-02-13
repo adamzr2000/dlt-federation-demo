@@ -3,7 +3,8 @@ networks:
     driver: bridge
     ipam:
       config:
-      - subnet: 172.18.0.0/16
+      - subnet: 172.18.0.0/24
+    name: dlt_network
 services:
   bootnode:
     command: ./bootnode_start.sh
@@ -56,10 +57,12 @@ services:
     networks:
       dlt_network:
         ipv4_address: 172.18.0.5
+    ports:
+    - 3334:3334
     restart: always
     volumes:
     - ../config/dlt-local/node1.env:/dlt-network/.env
-    - ../config/dlt/genesis/genesis_4_validators.json:/dlt-network/genesis.json
+    - ../config/dlt/genesis/genesis_3_validators.json:/dlt-network/genesis.json
   node2:
     command: ./node_start.sh
     container_name: node2
@@ -70,10 +73,12 @@ services:
     networks:
       dlt_network:
         ipv4_address: 172.18.0.6
+    ports:
+    - 3335:3335
     restart: always
     volumes:
     - ../config/dlt-local/node2.env:/dlt-network/.env
-    - ../config/dlt/genesis/genesis_4_validators.json:/dlt-network/genesis.json
+    - ../config/dlt/genesis/genesis_3_validators.json:/dlt-network/genesis.json
   node3:
     command: ./node_start.sh
     container_name: node3
@@ -84,22 +89,10 @@ services:
     networks:
       dlt_network:
         ipv4_address: 172.18.0.7
+    ports:
+    - 3336:3336
     restart: always
     volumes:
     - ../config/dlt-local/node3.env:/dlt-network/.env
-    - ../config/dlt/genesis/genesis_4_validators.json:/dlt-network/genesis.json
-  node4:
-    command: ./node_start.sh
-    container_name: node4
-    depends_on:
-    - bootnode
-    hostname: node4
-    image: dlt-node
-    networks:
-      dlt_network:
-        ipv4_address: 172.18.0.8
-    restart: always
-    volumes:
-    - ../config/dlt-local/node4.env:/dlt-network/.env
-    - ../config/dlt/genesis/genesis_4_validators.json:/dlt-network/genesis.json
+    - ../config/dlt/genesis/genesis_3_validators.json:/dlt-network/genesis.json
 version: '3.7'

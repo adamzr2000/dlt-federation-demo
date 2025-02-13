@@ -41,4 +41,4 @@ done
 echo "Local environment files generated successfully in $LOCAL_ENV_DIR directory."
 
 # Automatically call the Docker Compose generation script
-python3 generate_docker_compose.py "$NUM_NODES"
+python3 generate_local_docker_compose.py "$NUM_NODES"

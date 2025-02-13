@@ -19882,11 +19882,11 @@
       "events": {},
       "links": {},
       "address": "0xBEd601937431925036638a3464E5Dd3A31AE65e1",
-      "transactionHash": "0x2e7e77a57fac9076a0213aa2f4fe4aa1a8d88011b9b1fc8050859db72bf7cdda"
+      "transactionHash": "0x70d303541ca1cb403161b0f4d0221c58654c5215f36ae5f7bb615d788d78778d"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-02-12T18:23:28.064Z",
+  "updatedAt": "2025-02-13T09:55:31.878Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}

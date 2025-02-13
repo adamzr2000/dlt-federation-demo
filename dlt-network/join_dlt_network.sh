@@ -1,42 +1,63 @@
 #!/bin/bash
 
-# Function to handle the selection
-handle_selection() {
+# Function to display usage instructions
+usage() {
+    echo "Usage: $0 --node <node_selection> --validators <validators>"
+    echo "Example: $0 --node node2 --validators 3"
+    exit 1
+}
+
+# Function to validate node selection
+validate_node() {
     if [[ $1 =~ ^node[0-9]+$ ]]; then
         NODE_SELECTION="$1"
     else
-        echo "Invalid selection: $1. Please select a valid node in the format nodeX, where X is a number."
-        exit 1 # Indicates invalid selection
+        echo "Error: Invalid node selection '$1'. Use format 'nodeX' (e.g., node2)."
+        exit 1
     fi
 }
 
-# Function to handle validators parameter
-handle_validators() {
-    if [[ $1 =~ ^[0-9]+$ ]] && [ $1 -ge 2 ]; then
+# Function to validate the number of validators
+validate_validators() {
+    if [[ $1 =~ ^[0-9]+$ ]] && [[ $1 -ge 2 ]]; then
         VALIDATORS="$1"
     else
-        echo "Invalid validators value: $1. It must be a number greater than or equal to 2."
-        exit 1 # Indicates invalid validators value
+        echo "Error: Invalid validators count '$1'. Must be a number >= 2."
+        exit 1
     fi
 }
 
-# Check if at least two arguments are provided
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <node_selection> <validators>"
-    echo "Example: $0 node2 3"
-    exit 1
-else
-    handle_selection "$1"
-    handle_validators "$2"
+# Parse named arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --node)
+            validate_node "$2"
+            shift 2
+            ;;
+        --validators)
+            validate_validators "$2"
+            shift 2
+            ;;
+        *)
+            echo "Error: Unknown parameter '$1'"
+            usage
+            ;;
+    esac
+done
+
+# Ensure required arguments are set
+if [[ -z "$NODE_SELECTION" || -z "$VALIDATORS" ]]; then
+    echo "Error: Missing required arguments."
+    usage
 fi
 
-# Set the genesis file based on validators parameter
+# Set the genesis file based on the number of validators
 GENESIS_FILE="genesis_${VALIDATORS}_validators.json"
 
-# Proceed with the operation
+# Start the container
 START_CMD="./node_start.sh"
 
-DOCKER_CMD="docker run -d --name $NODE_SELECTION --hostname $NODE_SELECTION --network host --rm \
+DOCKER_CMD="docker run -d --name $NODE_SELECTION --network host --rm \
 -v $(pwd)/../config/dlt/$NODE_SELECTION.env:/dlt-network/.env \
 -v $(pwd)/../config/dlt/genesis/$GENESIS_FILE:/dlt-network/genesis.json \
 dlt-node $START_CMD"

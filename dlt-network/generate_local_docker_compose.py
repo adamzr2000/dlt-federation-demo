@@ -7,10 +7,11 @@ def generate_docker_compose(num_nodes):
         "version": "3.7",
         "networks": {
             "dlt_network": {
+                "name": "dlt_network",
                 "driver": "bridge",
                 "ipam": {
                     "config": [
-                        {"subnet": "172.18.0.0/16"}
+                        {"subnet": "172.18.0.0/24"}
                     ]
                 }
             }
@@ -79,6 +80,7 @@ def generate_docker_compose(num_nodes):
                     f"../config/dlt/genesis/genesis_{num_nodes}_validators.json:/dlt-network/genesis.json"
                 ],
                 "command": "./node_start.sh",
+                "ports": [f"{3333 + i}:{3333 + i}"],
                 "networks": {
                     "dlt_network": {
                         "ipv4_address": f"172.18.0.{4 + i}"
@@ -97,7 +99,7 @@ def generate_docker_compose(num_nodes):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 generate_docker_compose.py <number_of_nodes>")
+        print("Usage: python3 generate_local_docker_compose.py <number_of_nodes>")
         sys.exit(1)
 
     num_nodes = int(sys.argv[1])

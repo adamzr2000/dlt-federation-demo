@@ -122,21 +122,15 @@ class DomainRegistrationRequest(BaseModel):
     name: str
 
 class ServiceAnnouncementRequest(BaseModel):
-    endpoint_consumer: str
     service_type: Optional[str] = "K8s App Deployment"
     bandwidth_gbps: Optional[float] = None 
     rtt_latency_ms: Optional[int] = None 
     compute_cpus: Optional[int] = None 
     compute_ram_gb: Optional[int] = None 
-    # requirements: str 
-    # app_descriptor: str
-    # net_descriptor: str
-
 
 class PlaceBidRequest(BaseModel):
     service_id: str
     service_price: int
-    endpoint_provider: str
 
 class ChooseProviderRequest(BaseModel):
     bid_index: int
@@ -251,15 +245,20 @@ def UnregisterDomain(blockchain_address: str) -> str:
     except Exception as e:
         logger.error(f"Failed to unregister domain: {str(e)}")
         raise Exception("Domain unregistration failed.")
-
-def AnnounceService(blockchain_address: str, service_requirements: str, service_endpoint: str) -> str:
+                                 
+def AnnounceService(blockchain_address: str, service_requirements: str,
+                    endpoint_service_catalog_db: str, endpoint_topology_db:str,
+                    endpoint_nsd_id: str, endpoint_ns_id:str) -> str:
     global service_id, nonce, Federation_contract
     try:
         service_id = 'service' + str(int(time.time()))
         announce_transaction = Federation_contract.functions.AnnounceService(
             _requirements=web3.toBytes(text=service_requirements),
-            _endpoint_consumer=web3.toBytes(text=service_endpoint),
-            _id=web3.toBytes(text=service_id)
+            _id=web3.toBytes(text=service_id),
+            endpoint_service_catalog_db=web3.toBytes(text=endpoint_service_catalog_db),
+            endpoint_topology_db=web3.toBytes(text=endpoint_topology_db),
+            endpoint_nsd_id=web3.toBytes(text=endpoint_nsd_id),
+            endpoint_ns_id=web3.toBytes(text=endpoint_ns_id)
         ).buildTransaction({
             'from': blockchain_address,
             'nonce': nonce

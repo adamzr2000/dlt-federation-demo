@@ -10,4 +10,4 @@ fi
 source "$FEDERATION_ENV_FILE"
 
 # Start Uvicorn server
-exec python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8001 --env-file "$FEDERATION_ENV_FILE"
+exec python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 --env-file "$FEDERATION_ENV_FILE"
