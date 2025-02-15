@@ -61,8 +61,8 @@ for env_file in env_files:
 try:
     domain = os.getenv('DOMAIN_FUNCTION', '').strip().lower()
     dlt_node_id = os.getenv('DLT_NODE_ID')
-    # eth_node_url = os.getenv('WS_URL')
-    eth_node_url = os.getenv('ETH_NODE_URL')
+    eth_node_url = os.getenv('WS_URL')
+    # eth_node_url = os.getenv('ETH_NODE_URL')
     ip_address = os.getenv('NODE_IP')
 
     # logger.info(f"DOMAIN_FUNCTION: {domain}")
