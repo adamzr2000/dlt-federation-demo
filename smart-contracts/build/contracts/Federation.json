@@ -28124,11 +28124,11 @@
       "events": {},
       "links": {},
       "address": "0xBEd601937431925036638a3464E5Dd3A31AE65e1",
-      "transactionHash": "0xfbe228e573381d4d5ecca2eb1dcca6f33c6d8586a48c77ca558024d5d4dd1c67"
+      "transactionHash": "0x6d83bcec00825e776d99baab59bb86581131c42c91fed65694896735df23e24a"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-02-15T10:09:15.037Z",
+  "updatedAt": "2025-02-15T13:20:07.401Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}

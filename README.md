@@ -131,7 +131,7 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 -d '{
    "export_to_csv": false, 
    "service_price": 20,
-   "topology_db": "http://10.5.99.5:5000/topology"
+   "topology_db": "http://10.5.99.5:9999/topology"
 }'
 ```
 

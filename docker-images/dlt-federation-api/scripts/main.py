@@ -1034,6 +1034,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             print()
 
             print("=== Federated Network Configuration ===")
+            print(endpoint_provider_topology_db)
             utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
             print()
 
@@ -1141,7 +1142,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
             logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
 
-            # Wait for a winner to be selected 
+            logger.info(f"Waiting for a winner to be selected for service ID: {service_id}...")
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
             winnerChosen = False
             while winnerChosen == False:
