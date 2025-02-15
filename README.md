@@ -67,9 +67,7 @@ Use the following commands to confirm both nodes are connected:
 
 Each command should show `2 peers`.
 
-Access the `grafana` dashboard for additional information at [http://10.5.15.55:3000](http://10.5.15.55:3000)
-
-> Note: The username is `desire6g` and the password `desire6g2024;`
+Access the `ethnetstats` dashboard for additional information at [http://10.5.15.55:3000](http://10.5.15.55:3000)
 
 5. Stop the network:
 
