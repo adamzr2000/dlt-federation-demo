@@ -151,15 +151,12 @@ class ConsumerFederationProcessRequest(BaseModel):
     service_providers: Optional[int] = 1
 
     # Endpoint info
-    service_id: str
     topology_db: str
     ns_id: str 
     service_catalog_db: Optional[str] = None
     nsd_id: Optional[str] = None
 
     # Service requirements
-    service_catalog_db: Optional[str] = None
-    nsd_id: Optional[str] = None
     service_type: Optional[str] = "K8s App Deployment"
     bandwidth_gbps: Optional[float] = None 
     rtt_latency_ms: Optional[int] = None 
@@ -981,7 +978,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             ns_id = request.ns_id if request.ns_id is not None else "None"
 
             tx_hash = AnnounceService(block_address, formatted_requirements, service_catalog_db, topology_db, nsd_id, ns_id) 
-            logger.info(f"Service Announcement sent - Service ID: {service_id}")
+            logger.info(f"Service announcement sent - Service ID: {service_id}")
 
             # Wait for provider bids
             bids_event = create_event_filter(FederationEvents.NEW_BID)
@@ -996,7 +993,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
                     if received_bids >= request.service_providers:
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
-                        logger.info(f"{received_bids} bid offers received")
+                        logger.info(f"{received_bids} offer(s) received:")
                         bidderArrived = True 
                         break
             
@@ -1018,25 +1015,29 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             t_winner_choosen = time.time() - process_start_time
             data.append(['winner_choosen', t_winner_choosen])
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
-            logger.info(f"Provider Choosen - Bid Index: {best_bid_index}")
+            logger.info(f"Provider choosen - Bid index: {best_bid_index}")
 
             # Service closed (state 1)
             DisplayServiceState(service_id)
 
             # Wait for provider confirmation
             serviceDeployed = False 
+            logger.info(f"Waiting for provider to complete deployment of service ID: {service_id}...")
             while serviceDeployed == False:
                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
+            
+            DisplayServiceState(service_id)
             
             # Confirmation received
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
+            logger.info(f"Deployment confirmation received for service ID: {service_id}.")
 
             # Federated service info
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated Service Info:\n" +
-                f"  Federated Host: {federated_host}\n" +
-                f"  Provider Endpoint:\n" +
+            logger.info("Federated service info:\n" +
+                f"  Federated host: {federated_host}\n" +
+                f"  Provider endpoint:\n" +
                 f"    - Topology DB: {endpoint_provider_topology_db}\n" +
                 f"    - NS ID: {endpoint_provider_ns_id}")
             
@@ -1045,7 +1046,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
 
             logger.info(f"Establishing connectivity with the provider...")
-            time.sleep(3)
+            time.sleep(1)
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_connection_with_provider_finished', t_establish_connection_with_provider_finished])
@@ -1130,7 +1131,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     # Announcement received
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
-                    logger.info(f"New Service Announcement Received:\n" +
+                    logger.info(f"New service announcement received:\n" +
                         f"  Service ID: {service_id}\n" +
                         f"  Requirements: {requirements}\n")
                     newService = True
@@ -1141,7 +1142,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
-            logger.info(f"Bid Offer sent - Service ID: {service_id}, Price: {request.service_price} €")
+            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
 
             # Wait for a winner to be selected 
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
@@ -1179,9 +1180,9 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     
             # Federated service info
             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated Service Info:\n" +
-                f"  Federated Host: {federated_host}\n" +
-                f"  Consumer Endpoint:\n" +
+            logger.info("Federated service info:\n" +
+                f"  Federated host: {federated_host}\n" +
+                f"  Consumer endpoint:\n" +
                 f"    - Service Catalog DB: {endpoint_consumer_service_catalog_db}\n" +                
                 f"    - Topology DB: {endpoint_consumer_topology_db}\n" +
                 f"    - NSD ID: {endpoint_consumer_nsd_id}\n" +
@@ -1191,10 +1192,10 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             federated_host = "0.0.0.0"
 
             logger.info("Initializing deployment of ROS-based container application...")
-            time.sleep(2)
+            time.sleep(1)
 
             logger.info("Configuring network and establishing connectivity with the consumer...")
-            time.sleep(2)
+            time.sleep(1)
 
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
