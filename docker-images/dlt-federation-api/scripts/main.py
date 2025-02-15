@@ -169,13 +169,15 @@ class ConsumerFederationProcessRequest(BaseModel):
 class ProviderFederationProcessRequest(BaseModel):
     # Flag to indicate whether results should be exported to a CSV file
     export_to_csv: Optional[bool] = False
-
+    
+    # Endpoint info
+    topology_db: Optional[str] = None
+    ns_id: Optional[str] = None 
+    
     # The price of the service offered by the provider
     service_price: Optional[int] = 10
 
-    # Endpoint info
-    topology_db: str
-    ns_id: str 
+
 
 
 
@@ -1114,7 +1116,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
             logger.info("Subscribed to federation events. Waiting for service announcements...")
 
-            while not new_service_event:
+            while newService == False:
                 new_events = new_service_event.get_all_entries()
                 for event in new_events:
                     service_id = web3.toText(event['args']['id'])
