@@ -1017,21 +1017,18 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
             logger.info(f"Provider choosen - Bid index: {best_bid_index}")
 
-            # Service closed (state 1)
-            DisplayServiceState(service_id)
-
             # Wait for provider confirmation
             serviceDeployed = False 
             logger.info(f"Waiting for provider to complete deployment of service ID: {service_id}...")
             while serviceDeployed == False:
                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
-            
-            DisplayServiceState(service_id)
-            
+                        
             # Confirmation received
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
             logger.info(f"Deployment confirmation received for service ID: {service_id}.")
+
+            DisplayServiceState(service_id)
 
             # Federated service info
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
@@ -1137,6 +1134,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     newService = True
                 
             service_id = open_services[-1]
+            DisplayServiceState(service_id)
 
             # Place a bid offer
             t_bid_offer_sent = time.time() - process_start_time
@@ -1211,8 +1209,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
             ServiceDeployed(service_id, federated_host, block_address)
             logger.info(f"Service Deployed - Federated Host: {federated_host}")
-            DisplayServiceState(service_id)
-
+            
             total_duration = time.time() - process_start_time
 
             response = {
