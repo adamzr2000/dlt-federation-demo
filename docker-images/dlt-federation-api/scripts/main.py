@@ -12,21 +12,14 @@ from pydantic import BaseModel
 from typing import Optional, List
 from enum import Enum
 
-import docker_functions as docker_utils
-import kubernetes_functions as k8s_utils
 import utility_functions as utils
 
 # Define FastAPI app and OpenAPI metadata
 tags_metadata = [
     {"name": "Default DLT federation functions", "description": "Functions for consumer and provider domains."},
     {"name": "Consumer DLT federation functions", "description": "Functions for consumer domains."},
-    {"name": "Provider DLT federation functions", "description": "Functions for provider domains."},
-    {"name": "Docker Functions", "description": "Manage and deploy services in Docker."},
-    {"name": "Kubernetes Functions", "description": "Manage and deploy services in Kubernetes."},
+    {"name": "Provider DLT federation functions", "description": "Functions for provider domains."}
 ]
-
-# Directory containing example Kubernetes YAML descriptors
-K8S_EXAMPLE_DESCRIPTORS_DIR = "./descriptors/examples/"
 
 class FederationEvents(str, Enum):
     OPERATOR_REGISTERED = "OperatorRegistered"
@@ -1017,6 +1010,8 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
             logger.info(f"Provider choosen - Bid index: {best_bid_index}")
 
+            logger.info("Endpoint information for application and inter-domain connectivity shared.")
+
             # Wait for provider confirmation
             serviceDeployed = False 
             logger.info(f"Waiting for provider to complete deployment of service ID: {service_id}...")
@@ -1032,12 +1027,16 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 
             # Federated service info
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated service info:\n" +
-                f"  Federated host: {federated_host}\n" +
-                f"  Provider endpoint:\n" +
-                f"    - Topology DB: {endpoint_provider_topology_db}\n" +
-                f"    - NS ID: {endpoint_provider_ns_id}")
-            
+            logger.info("Federated service info:\n")
+
+            print("=== Federated Host (ROS_IP) ===")
+            print(federated_host)
+            print()
+
+            print("=== Federated Network Configuration ===")
+            utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
+            print()
+
             # Establish connection with the provider 
             t_establish_connection_with_provider_start = time.time() - process_start_time
             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
@@ -1178,13 +1177,15 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     
             # Federated service info
             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated service info:\n" +
-                f"  Federated host: {federated_host}\n" +
-                f"  Consumer endpoint:\n" +
-                f"    - Service Catalog DB: {endpoint_consumer_service_catalog_db}\n" +                
-                f"    - Topology DB: {endpoint_consumer_topology_db}\n" +
-                f"    - NSD ID: {endpoint_consumer_nsd_id}\n" +
-                f"    - NS ID: {endpoint_consumer_ns_id}")
+            logger.info("Federated service info:\n")
+
+            print("=== Application Descriptor ===")
+            utils.fetch_raw_yaml(url=f'{endpoint_consumer_service_catalog_db}/{endpoint_consumer_nsd_id}')
+            print()
+
+            print("=== Federated Network Configuration ===")
+            utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
+            print()
 
             # Deploy federated service (VXLAN tunnel + containers deployment)
             federated_host = "0.0.0.0"
@@ -1205,12 +1206,15 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
             tx_hash = UpdateEndpoint(service_id, domain, block_address,
                                  "None", request.topology_db,
-                                 "None", "federated-service-123456789")
+                                 "None", "provider-net.yaml")
 
             ServiceDeployed(service_id, federated_host, block_address)
-            logger.info(f"Service Deployed - Federated Host: {federated_host}")
+            logger.info(f"Service Deployed - Federated Host (ROS_IP): {federated_host}")
             
             total_duration = time.time() - process_start_time
+
+            logger.info("Endpoint information for inter-domain connectivity shared.")
+
 
             response = {
                 "status": "success",

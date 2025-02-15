@@ -131,8 +131,7 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 -d '{
    "export_to_csv": false, 
    "service_price": 20,
-   "topology_db": "http://10.5.99.5:5000/topology",
-   "ns_id": "None"
+   "topology_db": "http://10.5.99.5:5000/topology"
 }'
 ```
 
@@ -140,21 +139,16 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 
 > Note: This simulates the consumer-side service federation process, including service announcement, bid evaluation, and provider selection.
 
-### TO MODIFY
 ```bash
 curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
    "export_to_csv": false, 
    "service_type": "K8s App Deployment",
-   "bandwidth_gbps": 0.1,
-   "rtt_latency_ms": 20,
-   "compute_cpus": 2,
-   "compute_ram_gb": 4,
-   "service_catalog_db": "http://10.5.15.55:5000/catalog",
-   "topology_db": "http://10.5.15.55:5000/topology",
-   "nsd_id": "ros-app.yaml",
-   "ns_id": "ros-service-consumer"
+   "service_catalog_db": "http://10.5.15.55:9999/catalog",
+   "topology_db": "http://10.5.15.55:9999/topology",
+   "nsd_id": "provider-ros-app.yaml",
+   "ns_id": "consumer-net.yaml"
 }'
 ```
 

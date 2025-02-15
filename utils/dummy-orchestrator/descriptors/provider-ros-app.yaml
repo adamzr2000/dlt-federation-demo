@@ -9,9 +9,9 @@ spec:
       imagePullPolicy: IfNotPresent
       env:
         - name: ROS_MASTER_URI
-          value: "http://10.5.15.55:11311" 
+          value: "http://10.11.7.4:11311" 
         - name: ROS_IP
-          value: "10.5.15.55"
+          value: "<ros_ip>"  # Replace <ros_ip> with the desired ROS IP address
         - name: ROS_ROLE
           value: "subscriber"          
         - name: ROS_TOPIC
