@@ -132,7 +132,7 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
    "export_to_csv": false, 
    "service_price": 20,
    "topology_db": "http://10.5.99.5:9999/topology"
-}'
+}' | jq
 ```
 
 4. Trigger a federation request from the consumer AD:
@@ -149,7 +149,7 @@ curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
    "topology_db": "http://10.5.15.55:9999/topology",
    "nsd_id": "provider-ros-app.yaml",
    "ns_id": "consumer-net.yaml"
-}'
+}' | jq
 ```
 
 ## DLT Federation API Endpoints

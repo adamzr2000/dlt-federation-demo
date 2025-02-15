@@ -1,11 +1,29 @@
 version: '3'
 services:
-  eth-netstats:
-    image: eth-netstats
-    container_name: eth-netstats
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_HTTP_FLUX_ENABLED: "false"
+      INFLUXDB_HTTP_AUTH_ENABLED: "false"
+      INFLUXDB_DB: "geth"
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+       GF_SECURITY_ADMIN_USER: "desire6g"
+       GF_SECURITY_ADMIN_PASSWORD: "desire6g2024;"
     depends_on:
-      - node1
-    network_mode: "host"
+      - influxdb
+    ports:
+      - "3000:3000"
     restart: always
 
   bootnode:
