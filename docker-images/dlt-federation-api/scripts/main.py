@@ -1014,15 +1014,14 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 
             # Wait for provider confirmation
             serviceDeployed = False 
-            logger.info(f"Waiting for provider to complete deployment of service ID: {service_id}...")
+            logger.info(f"Waiting for provider to complete deployment...")
             while serviceDeployed == False:
                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
                         
             # Confirmation received
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
-            logger.info(f"Deployment confirmation received for service ID: {service_id}.")
-
+            logger.info("Deployment confirmation received.")
             DisplayServiceState(service_id)
 
             # Federated service info
@@ -1142,7 +1141,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
             logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
 
-            logger.info(f"Waiting for a winner to be selected for service ID: {service_id}...")
+            logger.info("Waiting for a winner to be selected...")
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
             winnerChosen = False
             while winnerChosen == False:
