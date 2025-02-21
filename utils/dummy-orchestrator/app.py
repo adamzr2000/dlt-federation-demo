@@ -89,7 +89,7 @@ def remove_vxlan():
             return jsonify({"error": f"Missing required parameter: {param}"}), 400
     
     cmd = [
-        "sudo", script_path,
+        script_path,
         "-v", str(data["vni"]),
         "-n", data["destination_network"]
     ]
