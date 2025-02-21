@@ -104,7 +104,7 @@ def remove_vxlan():
 @app.route("/test_connectivity", methods=["POST"])
 def test_connectivity():
     """
-    API to perform a ping test to a given target.
+    API to perform a simple 3x ping test to a given target.
     """
     data = request.json
     if "target" not in data:
@@ -112,11 +112,11 @@ def test_connectivity():
     
     target = data["target"]
     try:
-        result = subprocess.run(["ping", "-c", "3", target], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(["ping", "-c", "3", target], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode == 0:
-            return jsonify({"message": "Ping successful", "output": result.stdout})
+            return jsonify({"message": "Ping successful", "output": result.stdout.decode("utf-8")})
         else:
-            return jsonify({"error": "Ping failed", "output": result.stderr}), 500
+            return jsonify({"error": "Ping failed", "output": result.stderr.decode("utf-8")}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     

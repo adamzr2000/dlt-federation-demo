@@ -64,7 +64,14 @@ curl -X POST http://10.5.98.105:9999/remove_vxlan \
            "vni": 100,
            "destination_network": "10.11.7.0/24"
          }'
+```
 
+```bash
+curl -X POST http://10.5.15.16:9999/test_connectivity \
+     -H "Content-Type: application/json" \
+     -d '{
+           "target": "8.8.8.8"
+         }'
 ```
 
 ```bash
