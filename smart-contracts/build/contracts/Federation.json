@@ -28123,12 +28123,12 @@
     "2024": {
       "events": {},
       "links": {},
-      "address": "0xE4e5410b4Dee39fD4E84177EF7Fa2A307f2FCB66",
-      "transactionHash": "0xeae81d7267788ac1637d4921e9cb58d8a3143955b6e073355009f992055fe6c6"
+      "address": "0xBEd601937431925036638a3464E5Dd3A31AE65e1",
+      "transactionHash": "0xe1cec9db4a3e7bc1d12ee03b7dfcce14f28f06683fc685a427b7cb788cc1ddc5"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-02-21T13:21:39.641Z",
+  "updatedAt": "2025-02-21T13:26:48.607Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}

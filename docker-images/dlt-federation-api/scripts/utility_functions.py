@@ -67,6 +67,9 @@ def extract_service_endpoint(endpoint):
 
 # Function to fetch and parse the topology information
 def fetch_topology_info(url, provider):
+    """
+    Fetch and parse topology information from a given URL.
+    """
     try:
         # Send GET request to the specified URL
         response = requests.get(url)
@@ -76,31 +79,35 @@ def fetch_topology_info(url, provider):
             # Parse the YAML response
             network_info = yaml.safe_load(response.text)
             
-            # Extract and display relevant information
+            # Extract relevant information
             if 'network_info' in network_info:
                 network_data = network_info['network_info']
                 
-                # Common fields
-                print(f"Protocol: {network_data.get('protocol')}")
-                print(f"VXLAN ID: {network_data.get('vxlan_id')}")
-                print(f"UDP Port: {network_data.get('udp_port')}")
-                print(f"Consumer Tunnel Endpoint: {network_data.get('consumer_tunnel_endpoint')}")
-                print(f"Provider Tunnel Endpoint: {network_data.get('provider_tunnel_endpoint')}")
+                # Prepare result dictionary
+                result = {
+                    "protocol": network_data.get("protocol"),
+                    "vxlan_id": network_data.get("vxlan_id"),
+                    "udp_port": network_data.get("udp_port"),
+                    "consumer_tunnel_endpoint": network_data.get("consumer_tunnel_endpoint"),
+                    "provider_tunnel_endpoint": network_data.get("provider_tunnel_endpoint"),
+                }
                 
                 # Conditional fields based on the provider flag
                 if provider:
-                    print(f"Provider Subnet: {network_data.get('provider_subnet')}")
-                    print(f"Provider Router Endpoint: {network_data.get('provider_router_endpoint')}")
+                    result["provider_subnet"] = network_data.get("provider_subnet")
+                    result["provider_router_endpoint"] = network_data.get("provider_router_endpoint")
                 else:
-                    print(f"Consumer Subnet: {network_data.get('consumer_subnet')}")
-                    print(f"Consumer Router Endpoint: {network_data.get('consumer_router_endpoint')}")
+                    result["consumer_subnet"] = network_data.get("consumer_subnet")
+                    result["consumer_router_endpoint"] = network_data.get("consumer_router_endpoint")
+                
+                return result
             else:
-                print("Network information not found in the response.")
+                return {"error": "Network information not found in the response."}
         else:
-            print(f"Error: Unable to fetch data from the URL. Status code: {response.status_code}")
+            return {"error": "Unable to fetch data from the URL.", "status_code": response.status_code}
     
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
+        return {"error": str(e)}
 
 
 # Function to fetch and print the raw YAML response

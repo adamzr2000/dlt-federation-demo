@@ -1033,8 +1033,26 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             print()
 
             print("=== Federated Network Configuration ===")
-            print(endpoint_provider_topology_db)
-            utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
+            topology_data_consumer = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=False)
+            topology_data_provider = utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
+            protocol = topology_data_consumer.get("protocol")
+            vxlan_id = topology_data_consumer.get("vxlan_id")
+            udp_port = topology_data_consumer.get("udp_port")
+            consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
+            provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
+            consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
+
+            provider_subnet = topology_data_provider.get("provider_subnet")
+            provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
+
+            # Print extracted values
+            print("Protocol:", protocol)
+            print("VXLAN ID:", vxlan_id)
+            print("UDP Port:", udp_port)
+            print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
+            print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
+            print("Provider Subnet:", provider_subnet)
+            print("Provider Router Endpoint:", provider_router_endpoint)
             print()
 
             # Establish connection with the provider 
@@ -1043,7 +1061,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             
             logger.info(f"Establishing connectivity with the provider...")
             API_URL = "http://10.5.15.16:9999"
-            # response = utils.configure_router(API_URL, "netcom;", "10.5.15.16", "10.5.98.105", "eno1", 100, 4789, "192.168.70.0/24", "172.28.0.1/30", "172.28.0.2"))
+            # response = utils.configure_router(API_URL, "netcom;", consumer_router_endpoint, provider_router_endpoint, "eno1", vxlan_id, udp_port, provider_subnet, "172.28.0.1/30", "172.28.0.2")
             # print(response)
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
@@ -1052,7 +1070,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             total_duration = time.time() - process_start_time
 
             logger.info(f"Testing connectivity with remote host...")
-            response = utils.test_connectivity(API_URL, "8.8.8.8")
+            response = utils.test_connectivity(API_URL, federated_host)
             print(response)
 
             logger.info(f"Federation process successfully completed in {total_duration:.2f} seconds.")
@@ -1114,6 +1132,8 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             service_id = ''
             newService = False
             open_services = []
+            topology_db = request.topology_db if request.topology_db is not None else "None"
+            ns_id = request.ns_id if request.ns_id is not None else "None"
 
             # Wait for service announcements
             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
@@ -1190,17 +1210,37 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             print()
 
             print("=== Federated Network Configuration ===")
-            utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
+            topology_data_provider = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=True)
+            topology_data_consumer = utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
+            protocol = topology_data_consumer.get("protocol")
+            vxlan_id = topology_data_consumer.get("vxlan_id")
+            udp_port = topology_data_consumer.get("udp_port")
+            consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
+            provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
+
+            consumer_subnet = topology_data_consumer.get("consumer_subnet")
+            consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
+
+            # Print extracted values
+            print("Protocol:", protocol)
+            print("VXLAN ID:", vxlan_id)
+            print("UDP Port:", udp_port)
+            print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
+            print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
+            print("Consumer Subnet:", consumer_subnet)
+            print("Consumer Router Endpoint:", consumer_router_endpoint)
             print()
 
             # Deploy federated service (VXLAN tunnel + containers deployment)
-            federated_host = "0.0.0.0"
+            federated_host = "192.168.70.10"
 
             logger.info("Initializing deployment of ROS-based container application...")
             time.sleep(1)
 
             logger.info("Configuring network and establishing connectivity with the consumer...")
-            time.sleep(1)
+            API_URL = "http://10.5.98.105:9999"
+            # response = utils.configure_router(API_URL, "netcom;", provider_router_endpoint, consumer_router_endpoint, "enp7s0", vxlan_id, udp_port, consumer_subnet, "172.28.0.2/30", "172.28.0.1")
+            # print(response)
 
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
