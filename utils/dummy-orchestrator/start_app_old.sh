@@ -22,12 +22,12 @@ done
 SCREEN_SESSION_NAME="dummy-orchestrator"
 
 # Set Flask environment variables
-export FLASK_APP="app.py"
+export FLASK_APP="app_old.py"
 export FLASK_ENV="development"
 
 # Start the Flask app in a detached screen session
-screen -dmS "$SCREEN_SESSION_NAME" flask run --host=0.0.0.0 --port="$PORT"
-# sudo -u $(whoami) screen -dmS "$SCREEN_SESSION_NAME" flask run --host=0.0.0.0 --port="$PORT"
+# screen -dmS "$SCREEN_SESSION_NAME" flask run --host=0.0.0.0 --port="$PORT"
+sudo -u netcom screen -dmS "$SCREEN_SESSION_NAME" python3 -m flask run --host=0.0.0.0 --port="$PORT"
 
 # Provide user feedback
 echo "Server started in screen session: $SCREEN_SESSION_NAME"

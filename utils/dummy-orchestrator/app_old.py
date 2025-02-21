@@ -39,16 +39,16 @@ def configure_router():
     # Get JSON payload
     data = request.json
 
-    required_params = ["sudo_password", "local_ip", "remote_ip", "interface", "vni", "dst_port", "destination_network", "tunnel_ip", "gateway_ip"]
+    required_params = ["local_ip", "remote_ip", "interface", "vni", "dst_port", "destination_network", "tunnel_ip", "gateway_ip"]
     
     # Validate parameters
     for param in required_params:
         if param not in data:
-            return jsonify({"error": f"Missing required parameter: {param}"}), 400
+            return jsonify({"error": "Missing required parameter: {}".format(param)}), 400
 
     # Build the command
     cmd = [
-        "echo", data["sudo_password"], "|", "sudo", "-S", script_path,
+        "sudo", script_path,
         "-l", data["local_ip"],
         "-r", data["remote_ip"],
         "-i", data["interface"],
@@ -61,7 +61,7 @@ def configure_router():
 
     try:
         # Execute script
-        result = subprocess.run(" ".join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
         # Return success or failure response
         if result.returncode == 0:
@@ -82,20 +82,20 @@ def remove_vxlan():
         return jsonify({"error": "Script not found"}), 500
     
     data = request.json
-    required_params = ["sudo_password", "vni", "destination_network"]
+    required_params = ["vni", "destination_network"]
     
     for param in required_params:
         if param not in data:
-            return jsonify({"error": f"Missing required parameter: {param}"}), 400
+            return jsonify({"error": "Missing required parameter: {}".format(param)}), 400
     
     cmd = [
-        "echo", data["sudo_password"], "|", "sudo", "-S", script_path,
+        "sudo", script_path,
         "-v", str(data["vni"]),
         "-n", data["destination_network"]
     ]
     
     try:
-        result = subprocess.run(" ".join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if result.returncode == 0:
             return jsonify({"message": "VXLAN tunnel removed successfully", "output": result.stdout})
         else:
