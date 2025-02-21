@@ -1040,14 +1040,20 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             # Establish connection with the provider 
             t_establish_connection_with_provider_start = time.time() - process_start_time
             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
-
+            
             logger.info(f"Establishing connectivity with the provider...")
-            time.sleep(1)
+            API_URL = "http://10.5.15.16:9999"
+            # response = utils.configure_router(API_URL, "netcom;", "10.5.15.16", "10.5.98.105", "eno1", 100, 4789, "192.168.70.0/24", "172.28.0.1/30", "172.28.0.2"))
+            # print(response)
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_connection_with_provider_finished', t_establish_connection_with_provider_finished])
            
             total_duration = time.time() - process_start_time
+
+            logger.info(f"Testing connectivity with remote host...")
+            response = utils.test_connectivity(API_URL, "8.8.8.8")
+            print(response)
 
             logger.info(f"Federation process successfully completed in {total_duration:.2f} seconds.")
 

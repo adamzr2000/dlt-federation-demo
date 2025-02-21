@@ -217,3 +217,32 @@ def validate_endpoint(endpoint: str) -> bool:
     if re.match(pattern, endpoint):
         return True
     return False
+
+def configure_router(api_url, sudo_password, local_ip, remote_ip, interface, vni, dst_port, destination_network, tunnel_ip, gateway_ip):
+    payload = {
+        "sudo_password": sudo_password,
+        "local_ip": local_ip,
+        "remote_ip": remote_ip,
+        "interface": interface,
+        "vni": vni,
+        "dst_port": dst_port,
+        "destination_network": destination_network,
+        "tunnel_ip": tunnel_ip,
+        "gateway_ip": gateway_ip
+    }
+    response = requests.post(f"{api_url}/configure_router", json=payload)
+    return response.json()
+
+def remove_vxlan(api_url, sudo_password, vni, destination_network):
+    payload = {
+        "sudo_password": sudo_password,
+        "vni": vni,
+        "destination_network": destination_network
+    }
+    response = requests.post(f"{api_url}/remove_vxlan", json=payload)
+    return response.json()
+
+def test_connectivity(api_url, target):
+    payload = {"target": target}
+    response = requests.post(f"{api_url}/test_connectivity", json=payload)
+    return response.json()
