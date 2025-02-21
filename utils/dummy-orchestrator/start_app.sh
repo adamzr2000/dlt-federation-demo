@@ -12,11 +12,11 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
-# Ensure Flask is installed
-if ! command -v flask &> /dev/null; then
-    echo "Flask is not installed. Please install Flask to run the application."
-    exit 1
-fi
+# # Ensure Flask is installed
+# if ! command -v flask &> /dev/null; then
+#     echo "Flask is not installed. Please install Flask to run the application."
+#     exit 1
+# fi
 
 # Define a screen session name
 SCREEN_SESSION_NAME="dummy-orchestrator"
