@@ -1061,8 +1061,8 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             
             logger.info(f"Establishing connectivity with the provider...")
             API_URL = "http://10.5.15.16:9999"
-            # response = utils.configure_router(API_URL, "netcom;", consumer_router_endpoint, provider_router_endpoint, "eno1", vxlan_id, udp_port, provider_subnet, "172.28.0.1/30", "172.28.0.2")
-            # print(response)
+            response = utils.configure_router(API_URL, "netcom;", consumer_router_endpoint, provider_router_endpoint, "eno1", vxlan_id, udp_port, provider_subnet, "172.28.0.1/30", "172.28.0.2")
+            print(response)
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_connection_with_provider_finished', t_establish_connection_with_provider_finished])
@@ -1212,12 +1212,13 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             print("=== Federated Network Configuration ===")
             topology_data_provider = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=True)
             topology_data_consumer = utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
+            provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
+
             protocol = topology_data_consumer.get("protocol")
             vxlan_id = topology_data_consumer.get("vxlan_id")
             udp_port = topology_data_consumer.get("udp_port")
             consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
             provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
-
             consumer_subnet = topology_data_consumer.get("consumer_subnet")
             consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
 
@@ -1239,8 +1240,8 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
             logger.info("Configuring network and establishing connectivity with the consumer...")
             API_URL = "http://10.5.98.105:9999"
-            # response = utils.configure_router(API_URL, "netcom;", provider_router_endpoint, consumer_router_endpoint, "enp7s0", vxlan_id, udp_port, consumer_subnet, "172.28.0.2/30", "172.28.0.1")
-            # print(response)
+            response = utils.configure_router(API_URL, "netcom;", provider_router_endpoint, consumer_router_endpoint, "enp7s0", vxlan_id, udp_port, consumer_subnet, "172.28.0.2/30", "172.28.0.1")
+            print(response)
 
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
