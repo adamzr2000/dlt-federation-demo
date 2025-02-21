@@ -57,7 +57,7 @@ curl -X POST http://10.5.15.16:9999/remove_vxlan \
 ```
 
 ```bash
-curl -X POST http:/10.5.98.105:9999/remove_vxlan \
+curl -X POST http://10.5.98.105:9999/remove_vxlan \
      -H "Content-Type: application/json" \
      -d '{
            "sudo_password": "netcom;",

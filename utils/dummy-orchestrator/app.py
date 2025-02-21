@@ -100,6 +100,25 @@ def remove_vxlan():
     if error:
         return jsonify({"error": "Script execution failed", "output": error}), 500
     return jsonify({"message": "VXLAN tunnel removed successfully", "output": output})
+
+@app.route("/test_connectivity", methods=["POST"])
+def test_connectivity():
+    """
+    API to perform a ping test to a given target.
+    """
+    data = request.json
+    if "target" not in data:
+        return jsonify({"error": "Missing required parameter: target"}), 400
+    
+    target = data["target"]
+    try:
+        result = subprocess.run(["ping", "-c", "3", target], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            return jsonify({"message": "Ping successful", "output": result.stdout})
+        else:
+            return jsonify({"error": "Ping failed", "output": result.stderr}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     
 @app.route("/catalog/<path:descriptor>", methods=["GET"])
 def get_yaml_from_catalog(descriptor):
