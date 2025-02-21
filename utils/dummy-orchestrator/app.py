@@ -25,30 +25,40 @@ def serve_yaml_file(descriptor):
     except FileNotFoundError:
         abort(404, "File not found.")
 
+def run_script_with_sudo(script_path, args, sudo_password):
+    """
+    Helper function to run a shell script with sudo and password input.
+    """
+    command = [
+        "sudo", "-S", "bash", script_path
+    ] + args
+    
+    try:
+        result = subprocess.run(command, input=sudo_password.encode() + b'\n',
+                                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.stdout.decode(), None
+    except subprocess.CalledProcessError as e:
+        return None, e.stderr.decode()
+
+
 @app.route("/configure_router", methods=["POST"])
 def configure_router():
     """
     API to execute the vxlan_router_setup.sh script with provided parameters.
     """
     script_path = "./vxlan_router_setup.sh"
-
-    # Ensure script exists
+    
     if not os.path.exists(script_path):
         return jsonify({"error": "Script not found"}), 500
-
-    # Get JSON payload
+    
     data = request.json
-
     required_params = ["sudo_password", "local_ip", "remote_ip", "interface", "vni", "dst_port", "destination_network", "tunnel_ip", "gateway_ip"]
     
-    # Validate parameters
     for param in required_params:
         if param not in data:
             return jsonify({"error": f"Missing required parameter: {param}"}), 400
-
-    # Build the command
-    cmd = [
-        "echo", data["sudo_password"], "|", "sudo", "-S", script_path,
+    
+    args = [
         "-l", data["local_ip"],
         "-r", data["remote_ip"],
         "-i", data["interface"],
@@ -58,18 +68,11 @@ def configure_router():
         "-a", data["tunnel_ip"],
         "-g", data["gateway_ip"]
     ]
-
-    try:
-        # Execute script
-        result = subprocess.run(" ".join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        
-        # Return success or failure response
-        if result.returncode == 0:
-            return jsonify({"message": "Router configured successfully", "output": result.stdout})
-        else:
-            return jsonify({"error": "Script execution failed", "output": result.stderr}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    
+    output, error = run_script_with_sudo(script_path, args, data["sudo_password"])
+    if error:
+        return jsonify({"error": "Script execution failed", "output": error}), 500
+    return jsonify({"message": "Router configured successfully", "output": output})
 
 @app.route("/remove_vxlan", methods=["POST"])
 def remove_vxlan():
@@ -88,20 +91,15 @@ def remove_vxlan():
         if param not in data:
             return jsonify({"error": f"Missing required parameter: {param}"}), 400
     
-    cmd = [
-        "echo", data["sudo_password"], "|", "sudo", "-S", script_path,
+    args = [
         "-v", str(data["vni"]),
         "-n", data["destination_network"]
     ]
     
-    try:
-        result = subprocess.run(" ".join(cmd), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if result.returncode == 0:
-            return jsonify({"message": "VXLAN tunnel removed successfully", "output": result.stdout})
-        else:
-            return jsonify({"error": "Script execution failed", "output": result.stderr}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    output, error = run_script_with_sudo(script_path, args, data["sudo_password"])
+    if error:
+        return jsonify({"error": "Script execution failed", "output": error}), 500
+    return jsonify({"message": "VXLAN tunnel removed successfully", "output": output})
     
 @app.route("/catalog/<path:descriptor>", methods=["GET"])
 def get_yaml_from_catalog(descriptor):

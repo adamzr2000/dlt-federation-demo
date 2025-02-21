@@ -17,6 +17,7 @@ curl -O http://10.5.15.55:9999/catalog/consumer-app.yaml
 curl -X POST http://10.5.15.16:9999/configure_router \
      -H "Content-Type: application/json" \
      -d '{
+           "sudo_password": "netcom;",
            "local_ip": "10.5.15.16",
            "remote_ip": "10.5.98.105",
            "interface": "eno1",
