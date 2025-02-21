@@ -56,7 +56,7 @@ def configure_router():
     
     for param in required_params:
         if param not in data:
-            return jsonify({"error": f"Missing required parameter: {param}"}), 400
+            return jsonify({"error": "Missing required parameter: {}".format(param)}), 400
     
     args = [
         "-l", data["local_ip"],
@@ -89,7 +89,7 @@ def remove_vxlan():
     
     for param in required_params:
         if param not in data:
-            return jsonify({"error": f"Missing required parameter: {param}"}), 400
+            return jsonify({"error": "Missing required parameter: {}".format(param)}), 400
     
     args = [
         "-v", str(data["vni"]),

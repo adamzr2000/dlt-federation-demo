@@ -33,6 +33,7 @@ curl -X POST http://10.5.15.16:9999/configure_router \
 curl -X POST http://10.5.98.105:9999/configure_router \
      -H "Content-Type: application/json" \
      -d '{
+           "sudo_password": "netcom;",
            "local_ip": "10.5.98.105",
            "remote_ip": "10.5.15.16",
            "interface": "enp7s0",
@@ -48,6 +49,7 @@ curl -X POST http://10.5.98.105:9999/configure_router \
 curl -X POST http://10.5.15.16:9999/remove_vxlan \
      -H "Content-Type: application/json" \
      -d '{
+           "sudo_password": "netcom;",
            "vni": 100,
            "destination_network": "192.168.70.0/24"
          }'
@@ -58,6 +60,7 @@ curl -X POST http://10.5.15.16:9999/remove_vxlan \
 curl -X POST http:/10.5.98.105:9999/remove_vxlan \
      -H "Content-Type: application/json" \
      -d '{
+           "sudo_password": "netcom;",
            "vni": 100,
            "destination_network": "10.11.7.0/24"
          }'
