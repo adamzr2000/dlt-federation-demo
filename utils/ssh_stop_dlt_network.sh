@@ -7,7 +7,7 @@ NODE_2_IP="10.5.99.5"
 NODE_2_USER="netcom"
 
 # Define the individual commands for each node
-NODE_1_COMMAND="cd /home/${NODE_1_USER}/dlt-federation-demo/dlt-network/ && ./stop_dlt_network.sh"
+NODE_1_COMMAND="cd /home/${NODE_1_USER}/adam/dlt-federation-demo/dlt-network/ && ./stop_dlt_network.sh"
 NODE_2_COMMAND="docker kill node2"
 
 # Function to execute SSH command with debug logging
