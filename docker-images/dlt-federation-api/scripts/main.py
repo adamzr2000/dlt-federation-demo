@@ -1133,7 +1133,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             newService = False
             open_services = []
             topology_db = request.topology_db if request.topology_db is not None else "None"
-            ns_id = request.ns_id if request.ns_id is not None else "None"
+            ns_id = request.ns_id if request.ns_id is not None else "provider-net.yaml"
 
             # Wait for service announcements
             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
@@ -1252,8 +1252,8 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
 
             tx_hash = UpdateEndpoint(service_id, domain, block_address,
-                                 "None", request.topology_db,
-                                 "None", "provider-net.yaml")
+                                 "None", topology_db,
+                                 "None", ns_id)
 
             ServiceDeployed(service_id, federated_host, block_address)
             logger.info(f"Service Deployed - Federated Host (ROS_IP): {federated_host}")
