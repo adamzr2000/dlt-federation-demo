@@ -42,8 +42,6 @@ docker run \
     -p "$port":8000 \
     -v "$(pwd)/config":/app/config \
     -v "$(pwd)/smart-contracts":/app/smart-contracts \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/docker_functions.py":/app/docker_functions.py \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/kubernetes_functions.py":/app/kubernetes_functions.py \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/utility_functions.py":/app/utility_functions.py \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/main.py":/app/main.py \
     -v "$(pwd)/docker-images/dlt-federation-api/scripts/run_server.sh":/app/run_server.sh \

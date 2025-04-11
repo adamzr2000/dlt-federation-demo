@@ -55,9 +55,8 @@ try:
     domain = os.getenv('DOMAIN_FUNCTION', '').strip().lower()
     dlt_node_id = os.getenv('DLT_NODE_ID')
     eth_node_url = os.getenv('WS_URL')
-    # eth_node_url = os.getenv('ETH_NODE_URL')
     ip_address = os.getenv('NODE_IP')
-
+    supported_service = os.getenv('SUPPORTED_SERVICE_TYPE', '').strip().lower()
     # logger.info(f"DOMAIN_FUNCTION: {domain}")
     # logger.info(f"DLT_NODE_ID: {dlt_node_id}")
     # logger.info(f"WS_URL: {eth_node_url}")
@@ -111,7 +110,7 @@ class DomainRegistrationRequest(BaseModel):
     name: str
 
 class ServiceAnnouncementRequest(BaseModel):
-    service_type: Optional[str] = "K8s App Deployment"
+    service_type: Optional[str] = "k8s_deployment"
     bandwidth_gbps: Optional[float] = None 
     rtt_latency_ms: Optional[int] = None 
     compute_cpus: Optional[int] = None 
@@ -150,7 +149,7 @@ class ConsumerFederationProcessRequest(BaseModel):
     nsd_id: Optional[str] = None
 
     # Service requirements
-    service_type: Optional[str] = "K8s App Deployment"
+    service_type: Optional[str] = "k8s_deployment"
     bandwidth_gbps: Optional[float] = None 
     rtt_latency_ms: Optional[int] = None 
     compute_cpus: Optional[int] = None 
@@ -166,9 +165,6 @@ class ProviderFederationProcessRequest(BaseModel):
     
     # The price of the service offered by the provider
     service_price: Optional[int] = 10
-
-
-
 
 
 # Function to format service requirements in key=value; format with all fields included
@@ -920,33 +916,10 @@ def service_deployed_endpoint(request: ServiceDeployedRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
+
+###---###
 @app.post("/simulate_consumer_federation_process", tags=["Consumer DLT federation functions"])
 def simulate_consumer_federation_process(request: ConsumerFederationProcessRequest):
-    """
-    Simulates the consumer-side service federation process, including the following steps:
-    
-    - Announcing the service federation request.
-    - Waiting for bids from providers.
-    - Evaluating and selecting the best bid.
-    - Waiting for provider confirmation and service deployment.
-    - Establishing a VXLAN connection with the provider.
-
-    This function performs the entire consumer-side process, from service announcement to deployment confirmation,
-    and establishes the required VXLAN tunnel for communication between the consumer and provider.
-
-    Args:
-    - request (ConsumerFederationProcessRequest).
-
-    Returns:
-    - JSONResponse: A JSON object with the following keys:
-        - message (str): A message confirming the successful completion of the federation process.
-        - federated_host (str): The IP address of the federated host.
-    
-    Raises:
-    - HTTPException:
-        - 400: If the provided 'requirements' or 'endpoint' format is invalid.
-        - 500: If any error occurs during the federation process.
-    """
     global block_address, domain, service_id
     try:
         # List to store the timestamps of each federation step
@@ -1028,31 +1001,13 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
             logger.info("Federated service info:\n")
 
-            print("=== Federated Host (ROS_IP) ===")
+            print("=== Federated Instance (ROS_IP) ===")
             print(federated_host)
             print()
 
             print("=== Federated Network Configuration ===")
-            topology_data_consumer = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=False)
-            topology_data_provider = utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
-            protocol = topology_data_consumer.get("protocol")
-            vxlan_id = topology_data_consumer.get("vxlan_id")
-            udp_port = topology_data_consumer.get("udp_port")
-            consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
-            provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
-            consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
 
-            provider_subnet = topology_data_provider.get("provider_subnet")
-            provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
-
-            # Print extracted values
-            print("Protocol:", protocol)
-            print("VXLAN ID:", vxlan_id)
-            print("UDP Port:", udp_port)
-            print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
-            print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
-            print("Provider Subnet:", provider_subnet)
-            print("Provider Router Endpoint:", provider_router_endpoint)
+            print(endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id)
             print()
 
             # Establish connection with the provider 
@@ -1061,17 +1016,13 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             
             logger.info(f"Establishing connectivity with the provider...")
             API_URL = "http://10.5.15.16:9999"
-            response = utils.configure_router(API_URL, "netcom;", consumer_router_endpoint, provider_router_endpoint, "eno1", vxlan_id, udp_port, provider_subnet, "172.28.0.1/30", "172.28.0.2")
-            # print(response)
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_connection_with_provider_finished', t_establish_connection_with_provider_finished])
            
             total_duration = time.time() - process_start_time
 
-            logger.info(f"Testing connectivity with remote host...")
-            response = utils.test_connectivity(API_URL, federated_host)
-            print(response)
+            logger.info(f"Testing connectivity with federated instance...")
 
             logger.info(f"Federation process successfully completed in {total_duration:.2f} seconds.")
 
@@ -1093,31 +1044,8 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 @app.post("/simulate_provider_federation_process", tags=["Provider DLT federation functions"])
 def simulate_provider_federation_process(request: ProviderFederationProcessRequest):
     """
-    Simulates the provider-side service federation process, including the following steps:
-
-    - Waiting for service announcements.
-    - Submitting a bid offer for the service.
-    - Waiting for the consumer to choose a winner.
-    - Deploying the federated service if selected as the winner.
-
-    Args:
-    - request (ProviderFederationProcessRequest)
-
-    Returns:
-    - JSONResponse: A message confirming the successful completion of the federation process, or an error if the provider was not chosen.
-
-    Steps:
-    1. **Service Announcement**: The provider subscribes to the service announcement events and waits for a new service to be announced.
-    2. **Bid Placement**: The provider places a bid for the service.
-    3. **Bid Evaluation**: The provider waits for the consumer to evaluate bids and select a winner.
-    4. **Service Deployment**: If the provider wins, the service is deployed.
-    5. **Deployment Confirmation**: The provider confirms the deployment on the blockchain and the process ends.
-
-    Raises:
-    - HTTPException: 
-        - 500: If an error occurs during any step of the federation process or if the provider is not selected.
     """  
-    global block_address, domain
+    global block_address, domain, supported_service
     try:
         # List to store the timestamps of each federation step
         federation_step_times = []  
@@ -1145,7 +1073,8 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     service_id = web3.toText(event['args']['id'])
                     formatted_requirements = web3.toText(event['args']['requirements'])
                     requirements = utils.extract_service_requirements(formatted_requirements) 
-                    
+                    print("Is what I need?", requirements['service_type'])
+                    print(supported_service==requirements['service_type'].strip().lower())
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
                 
@@ -1206,30 +1135,10 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             logger.info("Federated service info:\n")
 
             print("=== Application Descriptor ===")
-            utils.fetch_raw_yaml(url=f'{endpoint_consumer_service_catalog_db}/{endpoint_consumer_nsd_id}')
             print()
 
             print("=== Federated Network Configuration ===")
-            topology_data_provider = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=True)
-            topology_data_consumer = utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
-            provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
-
-            protocol = topology_data_consumer.get("protocol")
-            vxlan_id = topology_data_consumer.get("vxlan_id")
-            udp_port = topology_data_consumer.get("udp_port")
-            consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
-            provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
-            consumer_subnet = topology_data_consumer.get("consumer_subnet")
-            consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
-
-            # Print extracted values
-            print("Protocol:", protocol)
-            print("VXLAN ID:", vxlan_id)
-            print("UDP Port:", udp_port)
-            print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
-            print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
-            print("Consumer Subnet:", consumer_subnet)
-            print("Consumer Router Endpoint:", consumer_router_endpoint)
+            print(endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id)
             print()
 
             # Deploy federated service (VXLAN tunnel + containers deployment)
@@ -1240,8 +1149,6 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
             logger.info("Configuring network and establishing connectivity with the consumer...")
             API_URL = "http://10.5.98.105:9999"
-            response = utils.configure_router(API_URL, "netcom;", provider_router_endpoint, consumer_router_endpoint, "enp7s0", vxlan_id, udp_port, consumer_subnet, "172.28.0.2/30", "172.28.0.1")
-            # print(response)
 
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
@@ -1256,7 +1163,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                                  "None", ns_id)
 
             ServiceDeployed(service_id, federated_host, block_address)
-            logger.info(f"Service Deployed - Federated Host (ROS_IP): {federated_host}")
+            logger.info(f"Service Deployed - Federated Instance (ROS_IP): {federated_host}")
             
             total_duration = time.time() - process_start_time
 
@@ -1279,3 +1186,364 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             raise HTTPException(status_code=500, detail="You must be provider to run this code")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))  
+###---###
+
+# # # @app.post("/simulate_consumer_federation_process", tags=["Consumer DLT federation functions"])
+# # # def simulate_consumer_federation_process(request: ConsumerFederationProcessRequest):
+# # #     """
+# # #     Simulates the consumer-side service federation process, including the following steps:
+    
+# # #     - Announcing the service federation request.
+# # #     - Waiting for bids from providers.
+# # #     - Evaluating and selecting the best bid.
+# # #     - Waiting for provider confirmation and service deployment.
+# # #     - Establishing a VXLAN connection with the provider.
+
+# # #     This function performs the entire consumer-side process, from service announcement to deployment confirmation,
+# # #     and establishes the required VXLAN tunnel for communication between the consumer and provider.
+
+# # #     Args:
+# # #     - request (ConsumerFederationProcessRequest).
+
+# # #     Returns:
+# # #     - JSONResponse: A JSON object with the following keys:
+# # #         - message (str): A message confirming the successful completion of the federation process.
+# # #         - federated_host (str): The IP address of the federated host.
+    
+# # #     Raises:
+# # #     - HTTPException:
+# # #         - 400: If the provided 'requirements' or 'endpoint' format is invalid.
+# # #         - 500: If any error occurs during the federation process.
+# # #     """
+# # #     global block_address, domain, service_id
+# # #     try:
+# # #         # List to store the timestamps of each federation step
+# # #         federation_step_times = []  
+# # #         header = ['step', 'timestamp']
+# # #         data = []
+
+# # #         formatted_requirements = format_service_requirements(request)
+
+# # #         if domain == 'consumer':
+            
+# # #             # Start time of the process
+# # #             process_start_time = time.time()
+                        
+# # #             # Send service announcement (federation request)
+# # #             t_service_announced = time.time() - process_start_time
+# # #             data.append(['service_announced', t_service_announced])
+
+# # #             service_catalog_db = request.service_catalog_db if request.service_catalog_db is not None else "None"
+# # #             topology_db = request.topology_db if request.topology_db is not None else "None"
+# # #             nsd_id = request.nsd_id if request.nsd_id is not None else "None"
+# # #             ns_id = request.ns_id if request.ns_id is not None else "None"
+
+# # #             tx_hash = AnnounceService(block_address, formatted_requirements, service_catalog_db, topology_db, nsd_id, ns_id) 
+# # #             logger.info(f"Service announcement sent - Service ID: {service_id}")
+
+# # #             # Wait for provider bids
+# # #             bids_event = create_event_filter(FederationEvents.NEW_BID)
+# # #             bidderArrived = False
+# # #             logger.info("Waiting for bids...")
+# # #             while not bidderArrived:
+# # #                 new_events = bids_event.get_all_entries()
+# # #                 for event in new_events:
+# # #                     event_id = str(web3.toText(event['args']['_id']))
+# # #                     received_bids = int(event['args']['max_bid_index'])
+                    
+# # #                     if received_bids >= request.service_providers:
+# # #                         t_bid_offer_received = time.time() - process_start_time
+# # #                         data.append(['bid_offer_received', t_bid_offer_received])
+# # #                         logger.info(f"{received_bids} offer(s) received:")
+# # #                         bidderArrived = True 
+# # #                         break
+            
+# # #             # Received bids
+# # #             lowest_price = None
+# # #             best_bid_index = None
+
+# # #             # Loop through all bid indices and print their information
+# # #             for i in range(received_bids):
+# # #                 bid_info = GetBidInfo(service_id, i, block_address)
+# # #                 logger.info(f"Bid {i}: {bid_info}")
+# # #                 bid_price = int(bid_info[1]) 
+# # #                 if lowest_price is None or bid_price < lowest_price:
+# # #                     lowest_price = bid_price
+# # #                     best_bid_index = int(bid_info[2])
+# # #                     # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
+                            
+# # #             # Choose winner provider
+# # #             t_winner_choosen = time.time() - process_start_time
+# # #             data.append(['winner_choosen', t_winner_choosen])
+# # #             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
+# # #             logger.info(f"Provider choosen - Bid index: {best_bid_index}")
+
+# # #             logger.info("Endpoint information for application and inter-domain connectivity shared.")
+
+# # #             # Wait for provider confirmation
+# # #             serviceDeployed = False 
+# # #             logger.info(f"Waiting for provider to complete deployment...")
+# # #             while serviceDeployed == False:
+# # #                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
+                        
+# # #             # Confirmation received
+# # #             t_confirm_deployment_received = time.time() - process_start_time
+# # #             data.append(['confirm_deployment_received', t_confirm_deployment_received])
+# # #             logger.info("Deployment confirmation received.")
+# # #             DisplayServiceState(service_id)
+
+# # #             # Federated service info
+# # #             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
+# # #             logger.info("Federated service info:\n")
+
+# # #             print("=== Federated Host (ROS_IP) ===")
+# # #             print(federated_host)
+# # #             print()
+
+# # #             print("=== Federated Network Configuration ===")
+# # #             topology_data_consumer = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=False)
+# # #             topology_data_provider = utils.fetch_topology_info(url=f'{endpoint_provider_topology_db}/{endpoint_provider_ns_id}', provider=True)
+# # #             protocol = topology_data_consumer.get("protocol")
+# # #             vxlan_id = topology_data_consumer.get("vxlan_id")
+# # #             udp_port = topology_data_consumer.get("udp_port")
+# # #             consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
+# # #             provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
+# # #             consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
+
+# # #             provider_subnet = topology_data_provider.get("provider_subnet")
+# # #             provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
+
+# # #             # Print extracted values
+# # #             print("Protocol:", protocol)
+# # #             print("VXLAN ID:", vxlan_id)
+# # #             print("UDP Port:", udp_port)
+# # #             print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
+# # #             print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
+# # #             print("Provider Subnet:", provider_subnet)
+# # #             print("Provider Router Endpoint:", provider_router_endpoint)
+# # #             print()
+
+# # #             # Establish connection with the provider 
+# # #             t_establish_connection_with_provider_start = time.time() - process_start_time
+# # #             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
+            
+# # #             logger.info(f"Establishing connectivity with the provider...")
+# # #             API_URL = "http://10.5.15.16:9999"
+# # #             response = utils.configure_router(API_URL, "netcom;", consumer_router_endpoint, provider_router_endpoint, "eno1", vxlan_id, udp_port, provider_subnet, "172.28.0.1/30", "172.28.0.2")
+# # #             # print(response)
+            
+# # #             t_establish_connection_with_provider_finished = time.time() - process_start_time
+# # #             data.append(['establish_connection_with_provider_finished', t_establish_connection_with_provider_finished])
+           
+# # #             total_duration = time.time() - process_start_time
+
+# # #             logger.info(f"Testing connectivity with remote host...")
+# # #             response = utils.test_connectivity(API_URL, federated_host)
+# # #             print(response)
+
+# # #             logger.info(f"Federation process successfully completed in {total_duration:.2f} seconds.")
+
+# # #             response = {
+# # #                 "status": "success",
+# # #                 "message": "Federation process completed successfully.",
+# # #                 "federation_duration_seconds": round(total_duration, 2),
+# # #                 "federated_host": federated_host
+# # #             }
+
+# # #             if request.export_to_csv:
+# # #                 utils.create_csv_file(domain, header, data)
+            
+# # #             return JSONResponse(content=response)
+# # #     except Exception as e:
+# # #         logger.error(f"Federation process failed: {str(e)}")
+# # #         raise HTTPException(status_code=500, detail=str(e))    
+
+# # # @app.post("/simulate_provider_federation_process", tags=["Provider DLT federation functions"])
+# # # def simulate_provider_federation_process(request: ProviderFederationProcessRequest):
+# # #     """
+# # #     Simulates the provider-side service federation process, including the following steps:
+
+# # #     - Waiting for service announcements.
+# # #     - Submitting a bid offer for the service.
+# # #     - Waiting for the consumer to choose a winner.
+# # #     - Deploying the federated service if selected as the winner.
+
+# # #     Args:
+# # #     - request (ProviderFederationProcessRequest)
+
+# # #     Returns:
+# # #     - JSONResponse: A message confirming the successful completion of the federation process, or an error if the provider was not chosen.
+
+# # #     Steps:
+# # #     1. **Service Announcement**: The provider subscribes to the service announcement events and waits for a new service to be announced.
+# # #     2. **Bid Placement**: The provider places a bid for the service.
+# # #     3. **Bid Evaluation**: The provider waits for the consumer to evaluate bids and select a winner.
+# # #     4. **Service Deployment**: If the provider wins, the service is deployed.
+# # #     5. **Deployment Confirmation**: The provider confirms the deployment on the blockchain and the process ends.
+
+# # #     Raises:
+# # #     - HTTPException: 
+# # #         - 500: If an error occurs during any step of the federation process or if the provider is not selected.
+# # #     """  
+# # #     global block_address, domain
+# # #     try:
+# # #         # List to store the timestamps of each federation step
+# # #         federation_step_times = []  
+# # #         header = ['step', 'timestamp']
+# # #         data = []
+
+# # #         if domain == 'provider':
+            
+# # #             # Start time of the process
+# # #             process_start_time = time.time()
+            
+# # #             service_id = ''
+# # #             newService = False
+# # #             open_services = []
+# # #             topology_db = request.topology_db if request.topology_db is not None else "None"
+# # #             ns_id = request.ns_id if request.ns_id is not None else "provider-net.yaml"
+
+# # #             # Wait for service announcements
+# # #             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
+# # #             logger.info("Subscribed to federation events. Waiting for service announcements...")
+
+# # #             while newService == False:
+# # #                 new_events = new_service_event.get_all_entries()
+# # #                 for event in new_events:
+# # #                     service_id = web3.toText(event['args']['id'])
+# # #                     formatted_requirements = web3.toText(event['args']['requirements'])
+# # #                     requirements = utils.extract_service_requirements(formatted_requirements) 
+                    
+# # #                     if GetServiceState(service_id) == 0:
+# # #                         open_services.append(service_id)
+                
+# # #                 if len(open_services) > 0:
+# # #                     # Announcement received
+# # #                     t_announce_received = time.time() - process_start_time
+# # #                     data.append(['announce_received', t_announce_received])
+# # #                     logger.info(f"New service announcement received:\n" +
+# # #                         f"  Service ID: {service_id}\n" +
+# # #                         f"  Requirements: {requirements}\n")
+# # #                     newService = True
+                
+# # #             service_id = open_services[-1]
+# # #             DisplayServiceState(service_id)
+
+# # #             # Place a bid offer
+# # #             t_bid_offer_sent = time.time() - process_start_time
+# # #             data.append(['bid_offer_sent', t_bid_offer_sent])
+# # #             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
+# # #             logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
+
+# # #             logger.info("Waiting for a winner to be selected...")
+# # #             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
+# # #             winnerChosen = False
+# # #             while winnerChosen == False:
+# # #                 new_events = winner_chosen_event.get_all_entries()
+# # #                 for event in new_events:
+# # #                     event_serviceid = web3.toText(event['args']['_id'])
+                    
+# # #                     if event_serviceid == service_id:    
+# # #                         # Winner choosen received
+# # #                         t_winner_received = time.time() - process_start_time
+# # #                         data.append(['winner_received', t_winner_received])
+# # #                         winnerChosen = True
+# # #                         break
+            
+# # #             am_i_winner = False
+# # #             while am_i_winner == False:
+# # #                 # Check if I am the winner
+# # #                 am_i_winner = CheckWinner(service_id, block_address)
+# # #                 if am_i_winner == True:
+# # #                     logger.info(f"Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
+# # #                     # Start the deployment of the requested federated service
+# # #                     t_deployment_start = time.time() - process_start_time
+# # #                     data.append(['deployment_start', t_deployment_start])
+# # #                     break
+# # #                 else:
+# # #                     logger.info(f"Not selected as the winner for service ID: {service_id}. Another provider has been chosen.")
+# # #                     t_other_provider_choosen = time.time() - process_start_time
+# # #                     data.append(['other_provider_choosen', t_other_provider_choosen])
+# # #                     if request.export_to_csv:
+# # #                         utils.create_csv_file(domain, header, data)
+# # #                         return JSONResponse(content={"message": f"Another provider was chosen for service ID: {service_id}."})
+
+                    
+# # #             # Federated service info
+# # #             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
+# # #             logger.info("Federated service info:\n")
+
+# # #             print("=== Application Descriptor ===")
+# # #             utils.fetch_raw_yaml(url=f'{endpoint_consumer_service_catalog_db}/{endpoint_consumer_nsd_id}')
+# # #             print()
+
+# # #             print("=== Federated Network Configuration ===")
+# # #             topology_data_provider = utils.fetch_topology_info(url=f'{topology_db}/{ns_id}', provider=True)
+# # #             topology_data_consumer = utils.fetch_topology_info(url=f'{endpoint_consumer_topology_db}/{endpoint_consumer_ns_id}', provider=False)
+# # #             provider_router_endpoint = topology_data_provider.get("provider_router_endpoint")
+
+# # #             protocol = topology_data_consumer.get("protocol")
+# # #             vxlan_id = topology_data_consumer.get("vxlan_id")
+# # #             udp_port = topology_data_consumer.get("udp_port")
+# # #             consumer_tunnel_endpoint = topology_data_consumer.get("consumer_tunnel_endpoint")
+# # #             provider_tunnel_endpoint = topology_data_consumer.get("provider_tunnel_endpoint")
+# # #             consumer_subnet = topology_data_consumer.get("consumer_subnet")
+# # #             consumer_router_endpoint = topology_data_consumer.get("consumer_router_endpoint")
+
+# # #             # Print extracted values
+# # #             print("Protocol:", protocol)
+# # #             print("VXLAN ID:", vxlan_id)
+# # #             print("UDP Port:", udp_port)
+# # #             print("Consumer Tunnel Endpoint:", consumer_tunnel_endpoint)
+# # #             print("Provider Tunnel Endpoint:", provider_tunnel_endpoint)
+# # #             print("Consumer Subnet:", consumer_subnet)
+# # #             print("Consumer Router Endpoint:", consumer_router_endpoint)
+# # #             print()
+
+# # #             # Deploy federated service (VXLAN tunnel + containers deployment)
+# # #             federated_host = "192.168.70.10"
+
+# # #             logger.info("Initializing deployment of ROS-based container application...")
+# # #             time.sleep(1)
+
+# # #             logger.info("Configuring network and establishing connectivity with the consumer...")
+# # #             API_URL = "http://10.5.98.105:9999"
+# # #             response = utils.configure_router(API_URL, "netcom;", provider_router_endpoint, consumer_router_endpoint, "enp7s0", vxlan_id, udp_port, consumer_subnet, "172.28.0.2/30", "172.28.0.1")
+# # #             # print(response)
+
+# # #             # Deployment finished
+# # #             t_deployment_finished = time.time() - process_start_time
+# # #             data.append(['deployment_finished', t_deployment_finished])
+                
+# # #             # Send deployment confirmation
+# # #             t_confirm_deployment_sent = time.time() - process_start_time
+# # #             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+
+# # #             tx_hash = UpdateEndpoint(service_id, domain, block_address,
+# # #                                  "None", topology_db,
+# # #                                  "None", ns_id)
+
+# # #             ServiceDeployed(service_id, federated_host, block_address)
+# # #             logger.info(f"Service Deployed - Federated Host (ROS_IP): {federated_host}")
+            
+# # #             total_duration = time.time() - process_start_time
+
+# # #             logger.info("Endpoint information for inter-domain connectivity shared.")
+
+
+# # #             response = {
+# # #                 "status": "success",
+# # #                 "message": "Federation process completed successfully.",
+# # #                 "federation_duration_seconds": round(total_duration, 2),
+# # #                 "federated_host": federated_host
+# # #             }
+                
+# # #             if request.export_to_csv:
+# # #                 utils.create_csv_file(domain, header, data)
+
+# # #             return JSONResponse(content=response)
+# # #         else:
+# # #             logger.error(f"Federation process failed: {str(e)}")
+# # #             raise HTTPException(status_code=500, detail="You must be provider to run this code")
+# # #     except Exception as e:
+# # #         raise HTTPException(status_code=500, detail=str(e))  
