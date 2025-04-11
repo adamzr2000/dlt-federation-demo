@@ -35,7 +35,7 @@ echo " - Exposed port: $port"
 START_CMD="./run_server.sh"
 
 docker run \
-    -it \
+    -d \
     --name $container_name \
     --hostname $container_name \
     --rm \
