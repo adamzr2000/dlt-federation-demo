@@ -139,7 +139,7 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
    "export_to_csv": false, 
-   "service_price": 20,
+   "service_price": 5,
    "topology_db": "http://10.5.99.5:9999/topology"
 }' | jq
 ```
@@ -153,7 +153,7 @@ curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
    "export_to_csv": false, 
-   "service_type": "K8s App Deployment",
+   "service_type": "k8s_deployment",
    "service_catalog_db": "http://10.5.15.55:9999/catalog",
    "topology_db": "http://10.5.15.55:9999/topology",
    "nsd_id": "provider-ros-app.yaml",

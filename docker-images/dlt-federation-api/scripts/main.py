@@ -56,7 +56,6 @@ try:
     dlt_node_id = os.getenv('DLT_NODE_ID')
     eth_node_url = os.getenv('WS_URL')
     ip_address = os.getenv('NODE_IP')
-    supported_service = os.getenv('SUPPORTED_SERVICE_TYPE', '').strip().lower()
     # logger.info(f"DOMAIN_FUNCTION: {domain}")
     # logger.info(f"DLT_NODE_ID: {dlt_node_id}")
     # logger.info(f"WS_URL: {eth_node_url}")
@@ -158,6 +157,8 @@ class ConsumerFederationProcessRequest(BaseModel):
 class ProviderFederationProcessRequest(BaseModel):
     # Flag to indicate whether results should be exported to a CSV file
     export_to_csv: Optional[bool] = False
+
+    supported_service_type: Optional[str] = "k8s_deployment"
     
     # Endpoint info
     topology_db: Optional[str] = None
@@ -1045,7 +1046,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 def simulate_provider_federation_process(request: ProviderFederationProcessRequest):
     """
     """  
-    global block_address, domain, supported_service
+    global block_address, domain
     try:
         # List to store the timestamps of each federation step
         federation_step_times = []  
@@ -1073,8 +1074,11 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     service_id = web3.toText(event['args']['id'])
                     formatted_requirements = web3.toText(event['args']['requirements'])
                     requirements = utils.extract_service_requirements(formatted_requirements) 
-                    print("Is what I need?", requirements['service_type'])
-                    print(supported_service==requirements['service_type'].strip().lower())
+
+                    is_match = request.supported_service_type == requirements['service_type'].strip().lower()
+
+                    print(is_match)
+
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
                 
@@ -1094,7 +1098,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
-            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} € / hour")
+            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price}€/hour")
 
             logger.info("Waiting for a winner to be selected...")
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
