@@ -1094,7 +1094,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
-            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
+            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} € / hour")
 
             logger.info("Waiting for a winner to be selected...")
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
