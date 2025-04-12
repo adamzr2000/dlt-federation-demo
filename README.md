@@ -169,10 +169,10 @@ curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
    "export_to_csv": true, 
-   "csv_path": /experiments/domain1,
+   "csv_path": "/experiments/domain1",
    "service_type": "k8s_deployment",
    "compute_cpus": 2,
-   "compute_ram_gb": 4
+   "compute_ram_gb": 4,
    "service_catalog_db": "http://10.5.15.55:9999/catalog",
    "topology_db": "http://10.5.15.55:9999/topology",
    "nsd_id": "provider-ros-app.yaml",

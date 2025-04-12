@@ -944,12 +944,12 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             ns_id = request.ns_id if request.ns_id is not None else "None"
 
             tx_hash = AnnounceService(block_address, formatted_requirements, service_catalog_db, topology_db, nsd_id, ns_id) 
-            logger.info(f"Service announcement sent - Service ID: {service_id}")
+            logger.info(f"Service announcement sent | Service ID: {service_id}")
 
             # Wait for provider bids
             bids_event = create_event_filter(FederationEvents.NEW_BID)
             bidderArrived = False
-            logger.info("Waiting for bids...")
+            logger.info("⏳ Waiting for bids...")
             while not bidderArrived:
                 new_events = bids_event.get_all_entries()
                 for event in new_events:
@@ -970,24 +970,32 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             # Loop through all bid indices and print their information
             for i in range(received_bids):
                 bid_info = GetBidInfo(service_id, i, block_address)
-                logger.info(f"Bid {i}: {bid_info}")
-                bid_price = int(bid_info[1]) 
+                provider_addr = bid_info[0]
+                bid_price = int(bid_info[1])
+                bid_index = int(bid_info[2])
+                logger.info(
+                    f"\nBid {i + 1}\n"
+                    f"{'-'*30}\n"
+                    f"Provider  : {provider_addr}\n"
+                    f"Price     : {bid_price} €/hour\n"
+                    f"Index     : {bid_index}\n"
+                )
                 if lowest_price is None or bid_price < lowest_price:
                     lowest_price = bid_price
-                    best_bid_index = int(bid_info[2])
+                    best_bid_index = bid_index
                     # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
                             
             # Choose winner provider
             t_winner_choosen = time.time() - process_start_time
             data.append(['winner_choosen', t_winner_choosen])
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
-            logger.info(f"Provider choosen - Bid index: {best_bid_index}")
+            logger.info(f"🏆 Provider choosen | Bid index: {best_bid_index}")
 
             logger.info("Endpoint information for application migration and inter-domain connectivity shared.")
 
             # Wait for provider confirmation
             serviceDeployed = False 
-            logger.info(f"Waiting for provider to complete deployment...")
+            logger.info(f"⏳ Waiting for provider to complete deployment...")
             while serviceDeployed == False:
                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
                         
@@ -1076,8 +1084,6 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     # Check if this provider can offer the requested service
                     is_match = request.offered_service.strip().lower() == requirements["service_type"].strip().lower()
 
-                    print("Provider can fulfill?", is_match)
-
                     filtered_requirements = {
                         k: v for k, v in requirements.items()
                         if v is not None and str(v).lower() != "none"
@@ -1087,29 +1093,34 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     if GetServiceState(service_id) == 0 and is_match:
                         open_services.append(service_id)
                         logger.info(
-                            f"New service announcement received:\n" +
-                            f"  Service ID: {service_id}\n" +
-                            f"  Requirements: {filtered_requirements}\n" +
-                            f"  Provider can fulfill: {is_match}\n"
+                            "\nNew service announcement\n"
+                            f"{'-'*40}\n"
+                            f"{'Service ID':<22}: {service_id}\n"
+                            f"{'Service state':<22}: Open\n"
+                            f"{'Provider can fulfill':<22}: {is_match}\n"
+                            f"{'Requirements':<22}:\n" +
+                            "".join([f"  └ {k:<20}: {v}\n" for k, v in filtered_requirements.items()]) +
+                            f"{'-'*40}"
                         )
+
                 
                 if len(open_services) > 0:
                     # Announcement received
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
-                    logger.info(f"Offers received: {len(open_services)}")
+                    # logger.info(f"Offers received: {len(open_services)}")
                     newService = True
                 
             service_id = open_services[-1]
-            DisplayServiceState(service_id)
+            # DisplayServiceState(service_id)
 
             # Place a bid offer
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
-            logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price}€/hour")
+            logger.info(f"Bid offer sent | Service ID: {service_id} | Price: {request.service_price}€/hour")
 
-            logger.info("Waiting for a winner to be selected...")
+            logger.info("⏳ Waiting for a winner to be selected...")
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
             winnerChosen = False
             while winnerChosen == False:
@@ -1129,7 +1140,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                 # Check if I am the winner
                 am_i_winner = CheckWinner(service_id, block_address)
                 if am_i_winner == True:
-                    logger.info(f"Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
+                    logger.info(f"🏆 Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
                     # Start the deployment of the requested federated service
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
@@ -1145,16 +1156,21 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     
             # Federated service info
             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated service info:\n")
-
-            print("=== Application Descriptor ===")
-            print(endpoint_consumer_nsd_id)
-            print()
-
-            print("=== Federated Network Configuration ===")
-            print("protocol=vxlan;vni=49;local_ip=X;remote_ip=Y;local_port=4789;udp_port=4789")
-            print()
-
+            
+            logger.info(
+                "\nFederated service info\n"
+                f"{'-'*40}\n"
+                f"{'App descriptor':<22}: {endpoint_consumer_nsd_id}\n"
+                f"{'Network config':<22}:\n"
+                f"  └ {'protocol':<20}: vxlan\n"
+                f"  └ {'vni':<20}: 49\n"
+                f"  └ {'local_ip':<20}: X\n"
+                f"  └ {'remote_ip':<20}: Y\n"
+                f"  └ {'local_port':<20}: 4789\n"
+                f"  └ {'udp_port':<20}: 4789\n"
+                f"{'-'*40}"
+            )
+            
             # Deploy federated service (VXLAN tunnel + containers deployment)
             federated_host = "192.168.70.10"
 
@@ -1177,7 +1193,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                                  "None", ns_id)
 
             ServiceDeployed(service_id, federated_host, block_address)
-            logger.info(f"Service Deployed - Federated Instance (ROS_IP): {federated_host}")
+            logger.info(f"Service Deployed | Federated Instance (ROS_IP): {federated_host}")
             
             total_duration = time.time() - process_start_time
 
@@ -1258,7 +1274,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 # # #             # Wait for provider bids
 # # #             bids_event = create_event_filter(FederationEvents.NEW_BID)
 # # #             bidderArrived = False
-# # #             logger.info("Waiting for bids...")
+# # #             logger.info("⏳ Waiting for bids...")
 # # #             while not bidderArrived:
 # # #                 new_events = bids_event.get_all_entries()
 # # #                 for event in new_events:
@@ -1296,7 +1312,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
 # # #             # Wait for provider confirmation
 # # #             serviceDeployed = False 
-# # #             logger.info(f"Waiting for provider to complete deployment...")
+# # #             logger.info(f"⏳ Waiting for provider to complete deployment...")
 # # #             while serviceDeployed == False:
 # # #                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
                         
@@ -1449,7 +1465,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 # # #             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
 # # #             logger.info(f"Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €")
 
-# # #             logger.info("Waiting for a winner to be selected...")
+# # #             logger.info("⏳ Waiting for a winner to be selected...")
 # # #             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
 # # #             winnerChosen = False
 # # #             while winnerChosen == False:
