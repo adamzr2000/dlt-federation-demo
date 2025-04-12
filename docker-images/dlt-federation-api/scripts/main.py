@@ -944,7 +944,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             ns_id = request.ns_id if request.ns_id is not None else "None"
 
             tx_hash = AnnounceService(block_address, formatted_requirements, service_catalog_db, topology_db, nsd_id, ns_id) 
-            logger.info(f"Service announcement sent | Service ID: {service_id}")
+            logger.info(f"📢 Service announcement sent - Service ID: {service_id}")
 
             # Wait for provider bids
             bids_event = create_event_filter(FederationEvents.NEW_BID)
@@ -959,7 +959,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
                     if received_bids >= request.service_providers:
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
-                        logger.info(f"{received_bids} offer(s) received:")
+                        logger.info(f"📨 {received_bids} bid(s) received:")
                         bidderArrived = True 
                         break
             
@@ -974,10 +974,11 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
                 bid_price = int(bid_info[1])
                 bid_index = int(bid_info[2])
                 print(
-                    f"{'-'*30}\n"
+                    f"{'-'*40}\n"
                     f"Bid index     : {bid_index}\n"
                     f"Bid price     : {bid_price} €/hour\n"
                     f"Provider  : {provider_addr}\n"
+                    f"{'-'*40}"
                 )
                 if lowest_price is None or bid_price < lowest_price:
                     lowest_price = bid_price
@@ -988,7 +989,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             t_winner_choosen = time.time() - process_start_time
             data.append(['winner_choosen', t_winner_choosen])
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
-            logger.info(f"Provider choosen | Bid index: {best_bid_index}")
+            logger.info(f"🏆 Provider selected - Bid index: {best_bid_index}")
 
             logger.info("Endpoint information for application migration and inter-domain connectivity shared.")
 
@@ -1001,15 +1002,14 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             # Confirmation received
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
-            logger.info("Deployment confirmation received.")
-            DisplayServiceState(service_id)
+            logger.info("✅ Deployment confirmation received.")
+            # DisplayServiceState(service_id)
 
             # Federated service info
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
-            logger.info("Federated service info:\n")
 
             logger.info(
-                "Federated service info\n"
+                "📡 Federated service info\n"
                 f"{'-'*40}\n"
                 f"{'Federated instance':<22}: {federated_host}\n"
                 f"{'Network config':<22}:\n"
@@ -1026,7 +1026,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             t_establish_connection_with_provider_start = time.time() - process_start_time
             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
             
-            logger.info("Setting up network connectivity with the provider...")
+            logger.info("🔗 Setting up network connectivity with the provider...")
             API_URL = "http://10.5.15.16:9999"
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
@@ -1036,7 +1036,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 
             logger.info(f"Testing connectivity with federated instance...")
 
-            logger.info(f"Federation process successfully completed in {total_duration:.2f} seconds.")
+            logger.info(f"✅ Federation process successfully completed in {total_duration:.2f} seconds.")
 
             response = {
                 "status": "success",
@@ -1098,7 +1098,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     if GetServiceState(service_id) == 0 and is_match:
                         open_services.append(service_id)
                         logger.info(
-                            "New service announcement:\n"
+                            "📨 New service announcement:\n"
                             f"{'-'*40}\n"
                             f"{'Service ID':<22}: {service_id}\n"
                             f"{'Service state':<22}: Open\n"
@@ -1124,7 +1124,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
             
-            logger.info(f"Bid offer sent | Service ID: {service_id} | Price: {request.service_price} €/hour")
+            logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {request.service_price} €/hour")
 
             logger.info("⏳ Waiting for a winner to be selected...")
 
@@ -1147,7 +1147,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                 # Check if I am the winner
                 am_i_winner = CheckWinner(service_id, block_address)
                 if am_i_winner == True:
-                    logger.info(f"Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
+                    logger.info(f"🏆 Selected as the winner for service ID: {service_id}.")
                     # Start the deployment of the requested federated service
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
@@ -1165,7 +1165,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
             
             logger.info(
-                "Federated service info\n"
+                "📡 Federated service info\n"
                 f"{'-'*40}\n"
                 f"{'App descriptor':<22}: {endpoint_consumer_nsd_id}\n"
                 f"{'Network config':<22}:\n"
@@ -1181,10 +1181,10 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             # Deploy federated service (VXLAN tunnel + containers deployment)
             federated_host = "192.168.70.10"
 
-            logger.info("Starting deployment of ROS-based application...")
+            logger.info("🚀 Starting deployment of ROS-based application...")
             time.sleep(1)
 
-            logger.info("Setting up network connectivity with the consumer...")
+            logger.info("🔗 Setting up network connectivity with the consumer...")
             API_URL = "http://10.5.98.105:9999"
 
             # Deployment finished
@@ -1200,12 +1200,11 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                                  "None", ns_id)
 
             ServiceDeployed(service_id, federated_host, block_address)
-            logger.info(f"Service Deployed | Federated Instance (ROS_IP): {federated_host}")
             
             total_duration = time.time() - process_start_time
 
             logger.info("Endpoint information for inter-domain connectivity shared.")
-
+            logger.info(f"✅ Service Deployed - Federated Instance (ROS_IP): {federated_host}")
 
             response = {
                 "status": "success",

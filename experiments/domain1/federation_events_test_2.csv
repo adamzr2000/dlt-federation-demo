@@ -1,0 +1,7 @@
+step,timestamp
+service_announced,4.76837158203125e-07
+bid_offer_received,6.073094367980957
+winner_choosen,6.084207057952881
+confirm_deployment_received,12.050669193267822
+establish_connection_with_provider_start,12.07032585144043
+establish_connection_with_provider_finished,12.070611953735352
