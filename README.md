@@ -17,13 +17,13 @@ cd dlt-federation-demo
 2. Build Docker Images:
 Navigate to the [docker-images](./docker-images) directory and run the `./build.sh` scripts for each image:
 
-- `dlt-node`: Based on [Go-Ethereum (Geth)](https://geth.ethereum.org/docs) software, serving as nodes within the blockchain network. (detailed info [here](./docker-images/dlt-node/)). ✅ Available 
+- `dlt-node`: [Go-Ethereum (Geth)](https://geth.ethereum.org/docs) client for creating private Ethereum-based blockchain networks. (detailed info [here](./docker-images/dlt-node/)). ✅ Available 
 
-- `truffle`: Development framework for Ethereum-based blockchain applications. It provides a suite of tools that allows developers to write, test, and deploy smart contracts. (detailed info [here](./docker-images/truffle/)). ✅ Available 
+- `truffle`: Development environment for compiling, testing, and deploying the [Federation Smart Contract](./smart-contracts/contracts/Federation.sol) using the [Truffle](https://archive.trufflesuite.com/docs/truffle/) framework.. (detailed info [here](./docker-images/truffle/)). ✅ Available 
 
-- `dlt-federation-api`: A RESTful API service built with [FastAPI](https://github.com/fastapi/fastapi) and [Web3.py](https://web3py.readthedocs.io/en/stable/). It exposes endpoints to interact with the deployed [Federation Smart Contract](./smart-contracts/contracts/Federation.sol). (detailed info [here](./docker-images/dlt-federation-api/)). ✅ Available 
+- `dlt-federation-api`: REST API built with [FastAPI](https://github.com/fastapi/fastapi) and [Web3.py](https://web3py.readthedocs.io/en/stable/) that exposes endpoints for interacting with the deployed `Federation Smart Contract`. (detailed info [here](./docker-images/dlt-federation-api/)). ✅ Available 
 
-- `eth-netstats`: aaa. (detailed info [here](./docker-images/eth-netstats/)). ✅ Available 
+- `eth-netstats`: Web dashboard for monitoring Ethereum network. (detailed info [here](./docker-images/eth-netstats/)). ✅ Available 
 
 ---
 
@@ -135,12 +135,28 @@ curl -X POST http://localhost:8080/register_domain \
 > Note: This simulates the provider-side service federation process, including bid placement, waiting for selection, and service deployment.
 
 ```bash
+# Domain2
+curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
+-H 'Content-Type: application/json' \
+-d '{
+   "export_to_csv": false, 
+   "service_price": 3,
+   "offered_service": "detnet_transport",
+   "topology_db": "http://10.5.99.5:9999/topology",
+   "ns_id": "federation-net"
+}' | jq
+```
+
+```bash
+# Domain3
 curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
    "export_to_csv": false, 
    "service_price": 5,
-   "topology_db": "http://10.5.99.5:9999/topology"
+   "offered_service": "k8s_deployment",
+   "topology_db": "http://10.5.99.6:9999/topology",
+   "ns_id": "federation-net"
 }' | jq
 ```
 
@@ -152,12 +168,28 @@ curl -X POST 'http://localhost:8080/simulate_provider_federation_process' \
 curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
 -H 'Content-Type: application/json' \
 -d '{
-   "export_to_csv": false, 
+   "export_to_csv": true, 
+   "csv_path": /experiments/domain1,
    "service_type": "k8s_deployment",
+   "compute_cpus": 2,
+   "compute_ram_gb": 4
    "service_catalog_db": "http://10.5.15.55:9999/catalog",
    "topology_db": "http://10.5.15.55:9999/topology",
    "nsd_id": "provider-ros-app.yaml",
-   "ns_id": "consumer-net.yaml"
+   "ns_id": "federation-net"
+}' | jq
+```
+
+```bash
+curl -X POST 'http://localhost:8080/simulate_consumer_federation_process' \
+-H 'Content-Type: application/json' \
+-d '{
+   "export_to_csv": false, 
+   "service_type": "detnet_transport",
+   "bandwidth_gbps": 0.1,
+   "rtt_latency_ms": 20,
+   "topology_db": "http://10.5.15.55:9999/topology",
+   "ns_id": "federation-net"
 }' | jq
 ```
 
@@ -207,15 +239,6 @@ curl -X DELETE 'http://localhost:8080/unregister_domain' | jq
 
 ### Create Service Announcement
 Returns the `tx_hash` and `service_id` for federation; otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8080/create_service_announcement' \
--H 'Content-Type: application/json' \
--d '{
-   "service_type": "K8s App Deployment"
-}' | jq
-```
-
 ```sh
 curl -X POST 'http://localhost:8080/create_service_announcement' \
 -H 'Content-Type: application/json' \

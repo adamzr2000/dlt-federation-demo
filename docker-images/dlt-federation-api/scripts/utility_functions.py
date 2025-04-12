@@ -126,33 +126,35 @@ def fetch_raw_yaml(url):
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
 
-def create_csv_file(role, header, data):
+def create_csv_file(file_path, header, data):
     """
-    Creates a CSV file to store federation events based on the role (Consumer or Provider).
+    Creates a CSV file in the specified path to store federation events.
 
     Args:
-        role (str): The role for which the file is created (e.g., 'consumer', 'provider').
+        file_path (str): The directory path where the CSV will be saved (e.g., 'experiments/domain2', 'results/test_run1').
         header (list): The header row for the CSV file.
-        data (list): The data rows to be written to the CSV file.
+        data (list): The data rows to be written.
 
     Returns:
-        None        
+        None
     """
-    base_dir = Path("experiments") / role
-    base_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-    
-    existing_files = list(base_dir.glob("federation_events_{}_test_*.csv".format(role)))
-    indices = [int(f.stem.split('_')[-1]) for f in existing_files if f.stem.split('_')[-1].isdigit()]
+    base_dir = Path(file_path)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    # Detect next test index based on existing files
+    existing_files = list(base_dir.glob("federation_events_test_*.csv"))
+    indices = [
+        int(f.stem.split('_')[-1]) for f in existing_files
+        if f.stem.split('_')[-1].isdigit()
+    ]
     next_index = max(indices) + 1 if indices else 1
 
-    file_name = base_dir / f"federation_events_{role}_test_{next_index}.csv"
+    file_name = base_dir / f"federation_events_test_{next_index}.csv"
 
     with open(file_name, 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(header)  # Write the header
-        writer.writerows(data)  # Write the data
-
-    logger.info(f"Data saved to {file_name}")
+        writer.writerow(header)
+        writer.writerows(data)
 
 def extract_ip_from_url(url) -> str:
     """

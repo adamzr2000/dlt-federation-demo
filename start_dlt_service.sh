@@ -40,11 +40,12 @@ docker run \
     --hostname $container_name \
     --rm \
     -p "$port":8000 \
-    -v "$(pwd)/config":/app/config \
-    -v "$(pwd)/smart-contracts":/app/smart-contracts \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/utility_functions.py":/app/utility_functions.py \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/main.py":/app/main.py \
-    -v "$(pwd)/docker-images/dlt-federation-api/scripts/run_server.sh":/app/run_server.sh \
+    -v "./config":/app/config \
+    -v "./smart-contracts":/app/smart-contracts \
+    -v "./docker-images/dlt-federation-api/scripts/utility_functions.py":/app/utility_functions.py \
+    -v "./docker-images/dlt-federation-api/scripts/main.py":/app/main.py \
+    -v "./docker-images/dlt-federation-api/scripts/run_server.sh":/app/run_server.sh \
+    -v "./experiments":/experiments \
     -e FEDERATION_ENV_FILE="$env_file" \
     dlt-federation-api:latest \
     $START_CMD

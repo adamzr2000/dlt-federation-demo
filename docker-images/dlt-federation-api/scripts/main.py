@@ -56,10 +56,7 @@ try:
     dlt_node_id = os.getenv('DLT_NODE_ID')
     eth_node_url = os.getenv('WS_URL')
     ip_address = os.getenv('NODE_IP')
-    # logger.info(f"DOMAIN_FUNCTION: {domain}")
-    # logger.info(f"DLT_NODE_ID: {dlt_node_id}")
-    # logger.info(f"WS_URL: {eth_node_url}")
-    # logger.info(f"NODE_IP: {ip_address}")
+
 
 except Exception as e:
     logger.error(f"Error loading configuration: {e}")
@@ -137,6 +134,7 @@ class ServiceDeployedRequest(BaseModel):
 class ConsumerFederationProcessRequest(BaseModel):
     # Flag to indicate whether results should be exported to a CSV file
     export_to_csv: Optional[bool] = False
+    csv_path: Optional[str] = None
 
     # Minimum number of service providers required before making a selection
     service_providers: Optional[int] = 1
@@ -157,8 +155,9 @@ class ConsumerFederationProcessRequest(BaseModel):
 class ProviderFederationProcessRequest(BaseModel):
     # Flag to indicate whether results should be exported to a CSV file
     export_to_csv: Optional[bool] = False
+    csv_path: Optional[str] = None
 
-    supported_service_type: Optional[str] = "k8s_deployment"
+    offered_service: Optional[str] = "k8s_deployment"
     
     # Endpoint info
     topology_db: Optional[str] = None
@@ -984,7 +983,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
             logger.info(f"Provider choosen - Bid index: {best_bid_index}")
 
-            logger.info("Endpoint information for application and inter-domain connectivity shared.")
+            logger.info("Endpoint information for application migration and inter-domain connectivity shared.")
 
             # Wait for provider confirmation
             serviceDeployed = False 
@@ -1007,8 +1006,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             print()
 
             print("=== Federated Network Configuration ===")
-
-            print(endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id)
+            print("protocol=vxlan;vni=49;local_ip=X;remote_ip=Y;local_port=4789;udp_port=4789")
             print()
 
             # Establish connection with the provider 
@@ -1029,13 +1027,13 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
 
             response = {
                 "status": "success",
-                "message": "Federation process completed successfully.",
+                "message": "Federation completed successfully.",
                 "federation_duration_seconds": round(total_duration, 2),
-                "federated_host": federated_host
+                "federated_instance": federated_host
             }
 
             if request.export_to_csv:
-                utils.create_csv_file(domain, header, data)
+                utils.create_csv_file(request.csv_path, header, data)
             
             return JSONResponse(content=response)
     except Exception as e:
@@ -1062,7 +1060,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             newService = False
             open_services = []
             topology_db = request.topology_db if request.topology_db is not None else "None"
-            ns_id = request.ns_id if request.ns_id is not None else "provider-net.yaml"
+            ns_id = request.ns_id if request.ns_id is not None else "None"
 
             # Wait for service announcements
             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
@@ -1075,20 +1073,29 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     formatted_requirements = web3.toText(event['args']['requirements'])
                     requirements = utils.extract_service_requirements(formatted_requirements) 
 
-                    is_match = request.supported_service_type == requirements['service_type'].strip().lower()
+                    # Check if this provider can offer the requested service
+                    is_match = request.offered_service.strip().lower() == requirements.get("service_type", "").strip().lower()
 
-                    print(is_match)
+                    filtered_requirements = {
+                        k: v for k, v in requirements.items()
+                        if v is not None and str(v).lower() != "none"
+                    }
 
-                    if GetServiceState(service_id) == 0:
+
+                    if GetServiceState(service_id) == 0 and is_match:
                         open_services.append(service_id)
+                        logger.info(
+                            f"New service announcement received:\n" +
+                            f"  Service ID: {service_id}\n" +
+                            f"  Requirements: {filtered_requirements}\n" +
+                            f"  Provider can fulfill: {is_match}\n"
+                        )
                 
                 if len(open_services) > 0:
                     # Announcement received
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
-                    logger.info(f"New service announcement received:\n" +
-                        f"  Service ID: {service_id}\n" +
-                        f"  Requirements: {requirements}\n")
+                    logger.info(f"Offers received: {len(open_services)}")
                     newService = True
                 
             service_id = open_services[-1]
@@ -1139,10 +1146,11 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             logger.info("Federated service info:\n")
 
             print("=== Application Descriptor ===")
+            print(endpoint_consumer_nsd_id)
             print()
 
             print("=== Federated Network Configuration ===")
-            print(endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id)
+            print("protocol=vxlan;vni=49;local_ip=X;remote_ip=Y;local_port=4789;udp_port=4789")
             print()
 
             # Deploy federated service (VXLAN tunnel + containers deployment)
@@ -1178,11 +1186,11 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                 "status": "success",
                 "message": "Federation process completed successfully.",
                 "federation_duration_seconds": round(total_duration, 2),
-                "federated_host": federated_host
+                "federated_instance": federated_host
             }
                 
             if request.export_to_csv:
-                utils.create_csv_file(domain, header, data)
+                utils.create_csv_file(request.csv_path, header, data)
 
             return JSONResponse(content=response)
         else:
