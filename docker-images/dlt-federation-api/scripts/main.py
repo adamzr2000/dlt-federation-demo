@@ -1074,7 +1074,9 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     requirements = utils.extract_service_requirements(formatted_requirements) 
 
                     # Check if this provider can offer the requested service
-                    is_match = request.offered_service.strip().lower() == requirements.get("service_type", "").strip().lower()
+                    is_match = request.offered_service.strip().lower() == requirements["service_type"].strip().lower()
+
+                    print("Provider can fulfill?", is_match)
 
                     filtered_requirements = {
                         k: v for k, v in requirements.items()
