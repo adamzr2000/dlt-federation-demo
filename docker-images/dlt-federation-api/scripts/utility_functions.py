@@ -6,7 +6,7 @@ import csv
 import ipaddress
 import requests
 import yaml
-import Path
+from pathlib import Path
 
 # Get the logger defined in main.py
 logger = logging.getLogger(__name__)
