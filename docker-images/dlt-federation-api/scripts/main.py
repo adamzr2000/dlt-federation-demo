@@ -973,12 +973,11 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
                 provider_addr = bid_info[0]
                 bid_price = int(bid_info[1])
                 bid_index = int(bid_info[2])
-                logger.info(
-                    f"\nBid {i + 1}\n"
+                print(
                     f"{'-'*30}\n"
+                    f"Bid index     : {bid_index}\n"
+                    f"Bid price     : {bid_price} €/hour\n"
                     f"Provider  : {provider_addr}\n"
-                    f"Price     : {bid_price} €/hour\n"
-                    f"Index     : {bid_index}\n"
                 )
                 if lowest_price is None or bid_price < lowest_price:
                     lowest_price = bid_price
@@ -989,7 +988,7 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             t_winner_choosen = time.time() - process_start_time
             data.append(['winner_choosen', t_winner_choosen])
             tx_hash = ChooseProvider(service_id, best_bid_index, block_address)
-            logger.info(f"🏆 Provider choosen | Bid index: {best_bid_index}")
+            logger.info(f"Provider choosen | Bid index: {best_bid_index}")
 
             logger.info("Endpoint information for application migration and inter-domain connectivity shared.")
 
@@ -1009,19 +1008,25 @@ def simulate_consumer_federation_process(request: ConsumerFederationProcessReque
             federated_host, endpoint_provider_service_catalog_db, endpoint_provider_topology_db, endpoint_provider_nsd_id, endpoint_provider_ns_id = GetServiceInfo(service_id, domain, block_address)
             logger.info("Federated service info:\n")
 
-            print("=== Federated Instance (ROS_IP) ===")
-            print(federated_host)
-            print()
-
-            print("=== Federated Network Configuration ===")
-            print("protocol=vxlan;vni=49;local_ip=X;remote_ip=Y;local_port=4789;udp_port=4789")
-            print()
+            logger.info(
+                "Federated service info\n"
+                f"{'-'*40}\n"
+                f"{'Federated instance':<22}: {federated_host}\n"
+                f"{'Network config':<22}:\n"
+                f"  └ {'protocol':<18}: vxlan\n"
+                f"  └ {'vni':<18}: 49\n"
+                f"  └ {'local_ip':<18}: X\n"
+                f"  └ {'remote_ip':<18}: Y\n"
+                f"  └ {'local_port':<18}: 4789\n"
+                f"  └ {'udp_port':<18}: 4789\n"
+                f"{'-'*40}"
+            )
 
             # Establish connection with the provider 
             t_establish_connection_with_provider_start = time.time() - process_start_time
             data.append(['establish_connection_with_provider_start', t_establish_connection_with_provider_start])
             
-            logger.info(f"Establishing connectivity with the provider...")
+            logger.info("Setting up network connectivity with the provider...")
             API_URL = "http://10.5.15.16:9999"
             
             t_establish_connection_with_provider_finished = time.time() - process_start_time
@@ -1072,7 +1077,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
 
             # Wait for service announcements
             new_service_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
-            logger.info("Subscribed to federation events. Waiting for service announcements...")
+            logger.info("⏳ Waiting for federation events...")
 
             while newService == False:
                 new_events = new_service_event.get_all_entries()
@@ -1093,7 +1098,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                     if GetServiceState(service_id) == 0 and is_match:
                         open_services.append(service_id)
                         logger.info(
-                            "\nNew service announcement\n"
+                            "New service announcement:\n"
                             f"{'-'*40}\n"
                             f"{'Service ID':<22}: {service_id}\n"
                             f"{'Service state':<22}: Open\n"
@@ -1118,9 +1123,11 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
             tx_hash = PlaceBid(service_id, request.service_price, block_address, "None", "None", "None", "None")
-            logger.info(f"Bid offer sent | Service ID: {service_id} | Price: {request.service_price}€/hour")
+            
+            logger.info(f"Bid offer sent | Service ID: {service_id} | Price: {request.service_price} €/hour")
 
             logger.info("⏳ Waiting for a winner to be selected...")
+
             winner_chosen_event = create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
             winnerChosen = False
             while winnerChosen == False:
@@ -1140,7 +1147,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                 # Check if I am the winner
                 am_i_winner = CheckWinner(service_id, block_address)
                 if am_i_winner == True:
-                    logger.info(f"🏆 Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
+                    logger.info(f"Selected as the winner for service ID: {service_id}. Proceeding with deployment...")
                     # Start the deployment of the requested federated service
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
@@ -1158,7 +1165,7 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
             federated_host, endpoint_consumer_service_catalog_db, endpoint_consumer_topology_db, endpoint_consumer_nsd_id, endpoint_consumer_ns_id = GetServiceInfo(service_id, domain, block_address)
             
             logger.info(
-                "\nFederated service info\n"
+                "Federated service info\n"
                 f"{'-'*40}\n"
                 f"{'App descriptor':<22}: {endpoint_consumer_nsd_id}\n"
                 f"{'Network config':<22}:\n"
@@ -1170,14 +1177,14 @@ def simulate_provider_federation_process(request: ProviderFederationProcessReque
                 f"  └ {'udp_port':<20}: 4789\n"
                 f"{'-'*40}"
             )
-            
+
             # Deploy federated service (VXLAN tunnel + containers deployment)
             federated_host = "192.168.70.10"
 
-            logger.info("Initializing deployment of ROS-based container application...")
+            logger.info("Starting deployment of ROS-based application...")
             time.sleep(1)
 
-            logger.info("Configuring network and establishing connectivity with the consumer...")
+            logger.info("Setting up network connectivity with the consumer...")
             API_URL = "http://10.5.98.105:9999"
 
             # Deployment finished
